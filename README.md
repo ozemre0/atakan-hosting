@@ -174,7 +174,7 @@ This is a private project. All rights reserved.
 
 ## 👤 Developer
 
-**Özcan Emre**
+**Emre Oz**
 - GitHub: [@ozemre0](https://github.com/ozemre0)
 
 ## 📞 Contact
