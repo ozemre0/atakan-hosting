@@ -1,0 +1,78 @@
+{% extends 'customers/base.html' %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">{{ domain.name }} - Domain Detayı</h5>
+        <div class="btn-group" role="group">
+            <a href="{% url 'customers:domain-edit' domain.pk %}" class="btn btn-warning">
+                <i class="bi bi-pencil"></i> Düzenle
+            </a>
+            <a href="{% url 'customers:domain-delete' domain.pk %}" class="btn btn-danger">
+                <i class="bi bi-trash"></i> Sil
+            </a>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <h6 class="mb-3">Domain Bilgileri</h6>
+                <table class="table table-sm">
+                    <tr>
+                        <th width="30%">Domain:</th>
+                        <td>{{ domain.name }}</td>
+                    </tr>
+                    <tr>
+                        <th>Müşteri:</th>
+                        <td>
+                            <a href="{% url 'customers:customer-detail' domain.customer.pk %}">
+                                {{ domain.customer.company_name }}
+                            </a>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Kayıt Tarihi:</th>
+                        <td>{{ domain.registration_date|date:"d.m.Y" }}</td>
+                    </tr>
+                    <tr>
+                        <th>Bitiş Tarihi:</th>
+                        <td>{{ domain.expiration_date|date:"d.m.Y" }}</td>
+                    </tr>
+                    <tr>
+                        <th>Durum:</th>
+                        <td>
+                            <span class="badge {% if domain.is_active %}bg-success{% else %}bg-danger{% endif %}">
+                                {{ domain.is_active|yesno:"Aktif,Pasif" }}
+                            </span>
+                        </td>
+                    </tr>
+                </table>
+
+                <h6 class="mb-3 mt-4">DNS Ayarları</h6>
+                <table class="table table-sm">
+                    <tr>
+                        <th width="30%">Nameserver 1:</th>
+                        <td>{{ domain.nameserver1 }}</td>
+                    </tr>
+                    <tr>
+                        <th>Nameserver 2:</th>
+                        <td>{{ domain.nameserver2 }}</td>
+                    </tr>
+                    {% if domain.nameserver3 %}
+                    <tr>
+                        <th>Nameserver 3:</th>
+                        <td>{{ domain.nameserver3 }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if domain.nameserver4 %}
+                    <tr>
+                        <th>Nameserver 4:</th>
+                        <td>{{ domain.nameserver4 }}</td>
+                    </tr>
+                    {% endif %}
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

@@ -1,0 +1,143 @@
+{% extends 'customers/base.html' %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">Domain Kayıtları</h5>
+        <a href="{% url 'customers:domain-add' %}" class="btn btn-primary btn-sm">
+            <i class="bi bi-plus"></i> Yeni Domain
+        </a>
+    </div>
+    <div class="card-body">
+        {% if domains %}
+        <!-- Arama ve Sıralama Kontrolleri -->
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <div class="input-group">
+                    <span class="input-group-text">
+                        <i class="bi bi-search"></i>
+                    </span>
+                    <input type="text" id="searchInput" class="form-control" placeholder="Domain ara...">
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="btn-group float-end" role="group">
+                    <button type="button" class="btn btn-outline-secondary" onclick="sortTable('domain')">
+                        <i class="bi bi-sort-alpha-down"></i> Domain Adı
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" onclick="sortTable('expiration')">
+                        <i class="bi bi-sort-down"></i> Bitiş Tarihi
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover" id="domainTable">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Domain</th>
+                        <th>Müşteri</th>
+                        <th>Kayıt Tarihi</th>
+                        <th>Bitiş Tarihi</th>
+                        <th>Durum</th>
+                        <th>İşlemler</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for domain in domains %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td>{{ domain.name }}</td>
+                        <td>{{ domain.customer.company_name }}</td>
+                        <td>{{ domain.registration_date|date:"d.m.Y" }}</td>
+                        <td>{{ domain.expiration_date|date:"d.m.Y" }}</td>
+                        <td>
+                            <span class="badge {% if domain.is_active %}bg-success{% else %}bg-danger{% endif %}">
+                                {{ domain.is_active|yesno:"Aktif,Pasif" }}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="btn-group" role="group">
+                                <a href="{% url 'customers:domain-detail' domain.pk %}" class="btn btn-sm btn-info" title="Detay">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a href="{% url 'customers:domain-edit' domain.pk %}" class="btn btn-sm btn-warning" title="Düzenle">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <a href="{% url 'customers:domain-delete' domain.pk %}" class="btn btn-sm btn-danger" title="Sil">
+                                    <i class="bi bi-trash"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-muted mb-0">Henüz domain kaydı bulunmuyor.</p>
+        {% endif %}
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+// Arama fonksiyonu
+document.getElementById('searchInput').addEventListener('keyup', function() {
+    let searchText = this.value.toLowerCase();
+    let table = document.getElementById('domainTable');
+    let rows = table.getElementsByTagName('tr');
+
+    for (let i = 1; i < rows.length; i++) {
+        let row = rows[i];
+        let cells = row.getElementsByTagName('td');
+        let found = false;
+
+        for (let j = 1; j < cells.length - 1; j++) {
+            let cell = cells[j];
+            if (cell.textContent.toLowerCase().indexOf(searchText) > -1) {
+                found = true;
+                break;
+            }
+        }
+
+        row.style.display = found ? '' : 'none';
+    }
+});
+
+// Sıralama fonksiyonu
+let sortDirection = 1;
+
+function sortTable(type) {
+    let table = document.getElementById('domainTable');
+    let rows = Array.from(table.getElementsByTagName('tr')).slice(1);
+    let tbody = table.getElementsByTagName('tbody')[0];
+
+    rows.sort(function(a, b) {
+        let aValue, bValue;
+
+        if (type === 'domain') {
+            aValue = a.cells[1].textContent.toLowerCase();
+            bValue = b.cells[1].textContent.toLowerCase();
+        } else if (type === 'expiration') {
+            aValue = new Date(a.cells[4].textContent.split('.').reverse().join('-'));
+            bValue = new Date(b.cells[4].textContent.split('.').reverse().join('-'));
+        }
+
+        if (aValue < bValue) return -1 * sortDirection;
+        if (aValue > bValue) return 1 * sortDirection;
+        return 0;
+    });
+
+    rows.forEach(function(row, index) {
+        row.cells[0].textContent = index + 1;
+        tbody.appendChild(row);
+    });
+
+    sortDirection *= -1;
+}
+</script>
+{% endblock %}
+{% endblock %} 

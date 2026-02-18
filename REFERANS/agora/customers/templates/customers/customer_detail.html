@@ -1,0 +1,338 @@
+{% extends 'customers/base.html' %}
+
+{% block content %}
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">Müşteri Bilgileri</h5>
+        <div>
+            <a href="{% url 'customers:customer-edit' customer.pk %}" class="btn btn-primary btn-sm">
+                <i class="bi bi-pencil"></i> Düzenle
+            </a>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <table class="table table-borderless">
+                    <tr>
+                        <th style="width: 150px;">Firma Adı:</th>
+                        <td>{{ customer.company_name }}</td>
+                    </tr>
+                    <tr>
+                        <th>İletişim Kişisi:</th>
+                        <td>{{ customer.contact_name }}</td>
+                    </tr>
+                    <tr>
+                        <th>E-posta:</th>
+                        <td>{{ customer.email }}</td>
+                    </tr>
+                    {% if customer.email2 %}
+                    <tr>
+                        <th>E-posta 2:</th>
+                        <td>{{ customer.email2 }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if customer.email3 %}
+                    <tr>
+                        <th>E-posta 3:</th>
+                        <td>{{ customer.email3 }}</td>
+                    </tr>
+                    {% endif %}
+                    <tr>
+                        <th>Telefon:</th>
+                        <td>{{ customer.phone }}</td>
+                    </tr>
+                </table>
+            </div>
+            <div class="col-md-6">
+                <table class="table table-borderless">
+                    <tr>
+                        <th style="width: 150px;">Vergi Dairesi:</th>
+                        <td>{{ customer.tax_office }}</td>
+                    </tr>
+                    <tr>
+                        <th>Vergi Numarası:</th>
+                        <td>{{ customer.tax_number }}</td>
+                    </tr>
+                    <tr>
+                        <th>Kayıt Tarihi:</th>
+                        <td>{{ customer.registration_date }}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+        
+        <div class="row mt-3">
+            <div class="col-12">
+                <h6 class="fw-bold">Adres:</h6>
+                <p class="mb-3">{{ customer.address|linebreaks }}</p>
+                
+                {% if customer.notes %}
+                <h6 class="fw-bold">Notlar:</h6>
+                <p class="mb-0">{{ customer.notes|linebreaks }}</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Hosting Hizmetleri -->
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="card-title mb-0">Hosting Hizmetleri</h6>
+        <a href="{% url 'customers:hosting-add' %}?customer={{ customer.pk }}" class="btn btn-sm btn-primary">
+            <i class="bi bi-plus-circle"></i> Yeni Hosting
+        </a>
+    </div>
+    <div class="card-body">
+        {% if hosting_services %}
+        <div class="table-responsive">
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Domain</th>
+                        <th>Durum</th>
+                        <th>Başlangıç</th>
+                        <th>Bitiş</th>
+                        <th>İşlemler</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for hosting in hosting_services %}
+                    <tr>
+                        <td>{{ hosting.domain.name }}</td>
+                        <td>{{ hosting.get_status_display }}</td>
+                        <td>{{ hosting.start_date|date:"d.m.Y" }}</td>
+                        <td>{{ hosting.expiration_date|date:"d.m.Y" }}</td>
+                        <td>
+                            <a href="{% url 'customers:hosting-detail' hosting.pk %}" class="btn btn-sm btn-info">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            <a href="{% url 'customers:hosting-edit' hosting.pk %}" class="btn btn-sm btn-warning">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <a href="{% url 'customers:hosting-delete' hosting.pk %}" class="btn btn-sm btn-danger">
+                                <i class="bi bi-trash"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="alert alert-info mb-0">
+            <i class="bi bi-info-circle"></i> Henüz hosting hizmeti bulunmamaktadır.
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Domainler -->
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="card-title mb-0">Domainler</h6>
+        <a href="{% url 'customers:domain-add' %}?customer={{ customer.pk }}" class="btn btn-sm btn-primary">
+            <i class="bi bi-plus-circle"></i> Yeni Domain
+        </a>
+    </div>
+    <div class="card-body">
+        {% if domains %}
+        <div class="table-responsive">
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Domain</th>
+                        <th>Kayıt Tarihi</th>
+                        <th>Bitiş Tarihi</th>
+                        <th>Durum</th>
+                        <th>İşlemler</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for domain in domains %}
+                    <tr>
+                        <td>{{ domain.name }}</td>
+                        <td>{{ domain.registration_date|date:"d.m.Y" }}</td>
+                        <td>{{ domain.expiration_date|date:"d.m.Y" }}</td>
+                        <td>{% if domain.is_active %}Aktif{% else %}Pasif{% endif %}</td>
+                        <td>
+                            <a href="{% url 'customers:domain-detail' domain.pk %}" class="btn btn-sm btn-info">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            <a href="{% url 'customers:domain-edit' domain.pk %}" class="btn btn-sm btn-warning">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <a href="{% url 'customers:domain-delete' domain.pk %}" class="btn btn-sm btn-danger">
+                                <i class="bi bi-trash"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="alert alert-info mb-0">
+            <i class="bi bi-info-circle"></i> Henüz domain kaydı bulunmamaktadır.
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- SSL Sertifikaları -->
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="card-title mb-0">SSL Sertifikaları</h6>
+        <a href="{% url 'customers:ssl-add' %}?customer={{ customer.pk }}" class="btn btn-sm btn-primary">
+            <i class="bi bi-plus-circle"></i> Yeni SSL
+        </a>
+    </div>
+    <div class="card-body">
+        {% if ssl_certificates %}
+        <div class="table-responsive">
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Domain</th>
+                        <th>Başlangıç</th>
+                        <th>Bitiş</th>
+                        <th>Durum</th>
+                        <th>İşlemler</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ssl in ssl_certificates %}
+                    <tr>
+                        <td>{{ ssl.domain.name }}</td>
+                        <td>{{ ssl.start_date|date:"d.m.Y" }}</td>
+                        <td>{{ ssl.expiration_date|date:"d.m.Y" }}</td>
+                        <td>{% if ssl.is_active %}Aktif{% else %}Pasif{% endif %}</td>
+                        <td>
+                            <a href="{% url 'customers:ssl-detail' ssl.pk %}" class="btn btn-sm btn-info">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            <a href="{% url 'customers:ssl-edit' ssl.pk %}" class="btn btn-sm btn-warning">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <a href="{% url 'customers:ssl-delete' ssl.pk %}" class="btn btn-sm btn-danger">
+                                <i class="bi bi-trash"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="alert alert-info mb-0">
+            <i class="bi bi-info-circle"></i> Henüz SSL sertifikası bulunmamaktadır.
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Faturalar -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">Faturalar</h5>
+        <a href="{% url 'customers:invoice-add' %}" class="btn btn-primary btn-sm">
+            <i class="bi bi-plus"></i> Yeni Fatura
+        </a>
+    </div>
+    <div class="card-body">
+        {% if invoices %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Fatura No</th>
+                        <th>Hizmet</th>
+                        <th>Tutar</th>
+                        <th>Fatura Tarihi</th>
+                        <th>Son Ödeme</th>
+                        <th>Durum</th>
+                        <th>İşlemler</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for invoice in invoices %}
+                    <tr>
+                        <td>{{ invoice.invoice_number }}</td>
+                        <td>{{ invoice.get_service_type_display }}</td>
+                        <td>{{ invoice.amount }} TL</td>
+                        <td>{{ invoice.issue_date }}</td>
+                        <td>{{ invoice.due_date }}</td>
+                        <td>
+                            {% if invoice.payment_status == 'paid' %}
+                            <span class="badge bg-success">Ödendi</span>
+                            {% elif invoice.payment_status == 'pending' %}
+                            <span class="badge bg-warning">Beklemede</span>
+                            {% else %}
+                            <span class="badge bg-danger">Gecikmiş</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{% url 'customers:invoice-detail' invoice.pk %}" class="btn btn-sm btn-info">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Fatura İstatistikleri -->
+        <div class="row mt-4">
+            <div class="col-md-3">
+                <div class="card bg-light">
+                    <div class="card-body">
+                        <h6 class="card-title">Toplam Fatura</h6>
+                        <p class="card-text">
+                            {{ invoice_stats.total.count }} Adet<br>
+                            {{ invoice_stats.total.amount|default:0 }} TL
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-success text-white">
+                    <div class="card-body">
+                        <h6 class="card-title">Ödenen</h6>
+                        <p class="card-text">
+                            {{ invoice_stats.paid.count }} Adet<br>
+                            {{ invoice_stats.paid.amount|default:0 }} TL
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-warning">
+                    <div class="card-body">
+                        <h6 class="card-title">Bekleyen</h6>
+                        <p class="card-text">
+                            {{ invoice_stats.pending.count }} Adet<br>
+                            {{ invoice_stats.pending.amount|default:0 }} TL
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-danger text-white">
+                    <div class="card-body">
+                        <h6 class="card-title">Gecikmiş</h6>
+                        <p class="card-text">
+                            {{ invoice_stats.overdue.count }} Adet<br>
+                            {{ invoice_stats.overdue.amount|default:0 }} TL
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <p class="text-muted mb-0">Henüz fatura bulunmuyor.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %} 

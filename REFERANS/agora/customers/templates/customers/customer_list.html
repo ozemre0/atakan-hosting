@@ -1,0 +1,142 @@
+{% extends 'customers/base.html' %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">Müşteriler</h5>
+        <a href="{% url 'customers:customer-add' %}" class="btn btn-primary btn-sm">
+            <i class="bi bi-plus"></i> Yeni Müşteri
+        </a>
+    </div>
+    <div class="card-body">
+        {% if customers %}
+        <!-- Arama ve Sıralama Kontrolleri -->
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <div class="input-group">
+                    <span class="input-group-text">
+                        <i class="bi bi-search"></i>
+                    </span>
+                    <input type="text" id="searchInput" class="form-control" placeholder="Müşteri ara...">
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="btn-group float-end" role="group">
+                    <button type="button" class="btn btn-outline-secondary" onclick="sortTable('company')">
+                        <i class="bi bi-sort-alpha-down"></i> Firma Adı
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" onclick="sortTable('date')">
+                        <i class="bi bi-sort-down"></i> Tarih
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover" id="customerTable">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Firma Adı</th>
+                        <th>İletişim Kişisi</th>
+                        <th>E-posta</th>
+                        <th>Telefon</th>
+                        <th>Kayıt Tarihi</th>
+                        <th>İşlemler</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for customer in customers %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td>{{ customer.company_name }}</td>
+                        <td>{{ customer.contact_name }}</td>
+                        <td>{{ customer.email }}</td>
+                        <td>{{ customer.phone }}</td>
+                        <td>{{ customer.registration_date|date:"d.m.Y" }}</td>
+                        <td>
+                            <div class="btn-group" role="group">
+                                <a href="{% url 'customers:customer-detail' customer.pk %}" class="btn btn-sm btn-info" title="Detay">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a href="{% url 'customers:customer-edit' customer.pk %}" class="btn btn-sm btn-warning" title="Düzenle">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <a href="{% url 'customers:customer-delete' customer.pk %}" class="btn btn-sm btn-danger" title="Sil">
+                                    <i class="bi bi-trash"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="alert alert-info mb-0">
+            <i class="bi bi-info-circle"></i> Henüz müşteri kaydı bulunmamaktadır.
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+// Arama fonksiyonu
+document.getElementById('searchInput').addEventListener('keyup', function() {
+    let searchText = this.value.toLowerCase();
+    let table = document.getElementById('customerTable');
+    let rows = table.getElementsByTagName('tr');
+
+    for (let i = 1; i < rows.length; i++) { // i=1 ile başlık satırını atlıyoruz
+        let row = rows[i];
+        let cells = row.getElementsByTagName('td');
+        let found = false;
+
+        for (let j = 1; j < cells.length - 1; j++) { // İlk (numara) ve son (işlemler) sütunları hariç
+            let cell = cells[j];
+            if (cell.textContent.toLowerCase().indexOf(searchText) > -1) {
+                found = true;
+                break;
+            }
+        }
+
+        row.style.display = found ? '' : 'none';
+    }
+});
+
+// Sıralama fonksiyonu
+let sortDirection = 1; // 1: artan, -1: azalan
+
+function sortTable(type) {
+    let table = document.getElementById('customerTable');
+    let rows = Array.from(table.getElementsByTagName('tr')).slice(1); // Başlık satırını çıkar
+    let tbody = table.getElementsByTagName('tbody')[0];
+
+    rows.sort(function(a, b) {
+        let aValue, bValue;
+
+        if (type === 'company') {
+            aValue = a.cells[1].textContent.toLowerCase(); // Firma adı sütunu
+            bValue = b.cells[1].textContent.toLowerCase();
+        } else if (type === 'date') {
+            aValue = new Date(a.cells[5].textContent.split('.').reverse().join('-')); // Tarih sütunu
+            bValue = new Date(b.cells[5].textContent.split('.').reverse().join('-'));
+        }
+
+        if (aValue < bValue) return -1 * sortDirection;
+        if (aValue > bValue) return 1 * sortDirection;
+        return 0;
+    });
+
+    // Sıralanmış satırları tabloya ekle
+    rows.forEach(function(row, index) {
+        row.cells[0].textContent = index + 1; // Sıra numarasını güncelle
+        tbody.appendChild(row);
+    });
+
+    sortDirection *= -1; // Sıralama yönünü değiştir
+}
+</script>
+{% endblock %}
+{% endblock %} 

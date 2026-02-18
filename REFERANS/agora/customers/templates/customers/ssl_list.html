@@ -1,0 +1,143 @@
+{% extends 'customers/base.html' %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">SSL Sertifikaları</h5>
+        <a href="{% url 'customers:ssl-add' %}" class="btn btn-primary btn-sm">
+            <i class="bi bi-plus-circle"></i> Yeni SSL
+        </a>
+    </div>
+    <div class="card-body">
+        {% if ssl_certificates %}
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <div class="input-group">
+                    <span class="input-group-text">
+                        <i class="bi bi-search"></i>
+                    </span>
+                    <input type="text" id="searchInput" class="form-control" placeholder="SSL ara...">
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="btn-group float-end" role="group">
+                    <button type="button" class="btn btn-outline-secondary" onclick="sortTable('domain')">
+                        <i class="bi bi-sort-alpha-down"></i> Domain Adı
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" onclick="sortTable('expiration')">
+                        <i class="bi bi-sort-down"></i> Bitiş Tarihi
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover" id="sslTable">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Domain</th>
+                        <th>Müşteri</th>
+                        <th>Başlangıç</th>
+                        <th>Bitiş</th>
+                        <th>Durum</th>
+                        <th>İşlemler</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ssl in ssl_certificates %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td>{{ ssl.domain.name }}</td>
+                        <td>{{ ssl.customer.company_name }}</td>
+                        <td>{{ ssl.start_date|date:"d.m.Y" }}</td>
+                        <td>{{ ssl.expiration_date|date:"d.m.Y" }}</td>
+                        <td>
+                            {% if ssl.is_active %}
+                            <span class="badge bg-success">Aktif</span>
+                            {% else %}
+                            <span class="badge bg-danger">Pasif</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{% url 'customers:ssl-detail' ssl.pk %}" class="btn btn-sm btn-info">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            <a href="{% url 'customers:ssl-edit' ssl.pk %}" class="btn btn-sm btn-warning">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <a href="{% url 'customers:ssl-delete' ssl.pk %}" class="btn btn-sm btn-danger">
+                                <i class="bi bi-trash"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="alert alert-info mb-0">
+            <i class="bi bi-info-circle"></i> Henüz SSL sertifikası kaydı bulunmamaktadır.
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+// Arama fonksiyonu
+document.getElementById('searchInput').addEventListener('keyup', function() {
+    let searchText = this.value.toLowerCase();
+    let table = document.getElementById('sslTable');
+    let rows = table.getElementsByTagName('tr');
+
+    for (let i = 1; i < rows.length; i++) {
+        let row = rows[i];
+        let cells = row.getElementsByTagName('td');
+        let found = false;
+
+        for (let j = 0; j < cells.length - 1; j++) {
+            let cell = cells[j];
+            if (cell.textContent.toLowerCase().indexOf(searchText) > -1) {
+                found = true;
+                break;
+            }
+        }
+
+        row.style.display = found ? '' : 'none';
+    }
+});
+
+// Sıralama fonksiyonu
+let sortDirection = 1;
+
+function sortTable(type) {
+    let table = document.getElementById('sslTable');
+    let rows = Array.from(table.getElementsByTagName('tr')).slice(1);
+    let tbody = table.getElementsByTagName('tbody')[0];
+
+    rows.sort(function(a, b) {
+        let aValue, bValue;
+
+        if (type === 'domain') {
+            aValue = a.cells[0].textContent.toLowerCase();
+            bValue = b.cells[0].textContent.toLowerCase();
+        } else if (type === 'expiration') {
+            aValue = new Date(a.cells[3].textContent.split('.').reverse().join('-'));
+            bValue = new Date(b.cells[3].textContent.split('.').reverse().join('-'));
+        }
+
+        if (aValue < bValue) return -1 * sortDirection;
+        if (aValue > bValue) return 1 * sortDirection;
+        return 0;
+    });
+
+    rows.forEach(function(row) {
+        tbody.appendChild(row);
+    });
+
+    sortDirection *= -1;
+}
+</script>
+{% endblock %}
+{% endblock %} 

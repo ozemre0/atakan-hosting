@@ -1,0 +1,58 @@
+{% extends 'customers/base.html' %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">{{ ssl.domain.name }} - SSL Sertifikası</h5>
+        <div class="btn-group" role="group">
+            <a href="{% url 'customers:ssl-edit' ssl.pk %}" class="btn btn-warning">
+                <i class="bi bi-pencil"></i> Düzenle
+            </a>
+            <a href="{% url 'customers:ssl-delete' ssl.pk %}" class="btn btn-danger">
+                <i class="bi bi-trash"></i> Sil
+            </a>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <h6 class="mb-3">Sertifika Bilgileri</h6>
+                <table class="table table-sm">
+                    <tr>
+                        <th width="30%">Domain:</th>
+                        <td>
+                            <a href="{% url 'customers:domain-detail' ssl.domain.pk %}">
+                                {{ ssl.domain.name }}
+                            </a>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Müşteri:</th>
+                        <td>
+                            <a href="{% url 'customers:customer-detail' ssl.domain.customer.pk %}">
+                                {{ ssl.domain.customer.company_name }}
+                            </a>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Başlangıç:</th>
+                        <td>{{ ssl.start_date|date:"d.m.Y" }}</td>
+                    </tr>
+                    <tr>
+                        <th>Bitiş:</th>
+                        <td>{{ ssl.expiration_date|date:"d.m.Y" }}</td>
+                    </tr>
+                    <tr>
+                        <th>Durum:</th>
+                        <td>
+                            <span class="badge {% if ssl.is_active %}bg-success{% else %}bg-danger{% endif %}">
+                                {{ ssl.is_active|yesno:"Aktif,Pasif" }}
+                            </span>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

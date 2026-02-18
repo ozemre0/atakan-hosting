@@ -1,0 +1,70 @@
+{% extends 'customers/base.html' %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">Fatura Detayı</h5>
+        <div>
+            <a href="{% url 'customers:invoice-edit' invoice.pk %}" class="btn btn-warning btn-sm">
+                <i class="bi bi-pencil"></i> Düzenle
+            </a>
+            <a href="{% url 'customers:invoice-delete' invoice.pk %}" class="btn btn-danger btn-sm">
+                <i class="bi bi-trash"></i> Sil
+            </a>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <h6 class="mb-3">Fatura Bilgileri</h6>
+                <table class="table table-sm">
+                    <tr>
+                        <th style="width: 150px;">Fatura No:</th>
+                        <td>{{ invoice.invoice_number }}</td>
+                    </tr>
+                    <tr>
+                        <th>Müşteri:</th>
+                        <td>{{ invoice.customer.company_name }}</td>
+                    </tr>
+                    <tr>
+                        <th>Tutar:</th>
+                        <td>{{ invoice.amount }} TL</td>
+                    </tr>
+                    <tr>
+                        <th>Fatura Tarihi:</th>
+                        <td>{{ invoice.issue_date|date:"d.m.Y" }}</td>
+                    </tr>
+                    <tr>
+                        <th>Son Ödeme Tarihi:</th>
+                        <td>{{ invoice.due_date|date:"d.m.Y" }}</td>
+                    </tr>
+                    <tr>
+                        <th>Ödeme Durumu:</th>
+                        <td>
+                            {% if invoice.payment_status == 'paid' %}
+                            <span class="badge bg-success">Ödendi</span>
+                            {% elif invoice.payment_status == 'pending' %}
+                            <span class="badge bg-warning">Beklemede</span>
+                            {% else %}
+                            <span class="badge bg-danger">Gecikmiş</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Ödeme Yöntemi:</th>
+                        <td>{{ invoice.get_payment_method_display }}</td>
+                    </tr>
+                    <tr>
+                        <th>Ödeme Tarihi:</th>
+                        <td>{{ invoice.payment_date|date:"d.m.Y"|default:"-" }}</td>
+                    </tr>
+                    <tr>
+                        <th>Notlar:</th>
+                        <td>{{ invoice.notes|default:"-" }}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

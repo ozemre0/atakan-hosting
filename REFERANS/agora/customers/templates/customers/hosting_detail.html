@@ -1,0 +1,114 @@
+{% extends 'customers/base.html' %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">Hosting Hizmeti Detayı</h5>
+        <div>
+            <a href="{% url 'customers:hosting-edit' hosting.pk %}" class="btn btn-warning btn-sm">
+                <i class="bi bi-pencil"></i> Düzenle
+            </a>
+            <a href="{% url 'customers:hosting-delete' hosting.pk %}" class="btn btn-danger btn-sm">
+                <i class="bi bi-trash"></i> Sil
+            </a>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <h6 class="fw-bold mb-3">Genel Bilgiler</h6>
+                <table class="table table-borderless">
+                    <tr>
+                        <th style="width: 200px;">Müşteri:</th>
+                        <td>
+                            <a href="{% url 'customers:customer-detail' hosting.customer.pk %}">
+                                {{ hosting.customer.company_name }}
+                            </a>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Domain:</th>
+                        <td>{{ hosting.domain.name }}</td>
+                    </tr>
+                    <tr>
+                        <th>Durum:</th>
+                        <td>
+                            {% if hosting.status == 'active' %}
+                            <span class="badge bg-success">{{ hosting.get_status_display }}</span>
+                            {% elif hosting.status == 'suspended' %}
+                            <span class="badge bg-warning">{{ hosting.get_status_display }}</span>
+                            {% else %}
+                            <span class="badge bg-danger">{{ hosting.get_status_display }}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Başlangıç Tarihi:</th>
+                        <td>{{ hosting.start_date|date:"d.m.Y" }}</td>
+                    </tr>
+                    <tr>
+                        <th>Bitiş Tarihi:</th>
+                        <td>{{ hosting.expiration_date|date:"d.m.Y" }}</td>
+                    </tr>
+                </table>
+            </div>
+            <div class="col-md-6">
+                <h6 class="fw-bold mb-3">FTP Bilgileri</h6>
+                <table class="table table-borderless">
+                    <tr>
+                        <th style="width: 200px;">FTP Kullanıcı Adı:</th>
+                        <td>{{ hosting.ftp_username|default:"-" }}</td>
+                    </tr>
+                    <tr>
+                        <th>FTP Şifre:</th>
+                        <td>{{ hosting.ftp_password|default:"-" }}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <div class="col-md-6">
+                <h6 class="fw-bold mb-3">Ödeme Bilgileri</h6>
+                <table class="table table-borderless">
+                    <tr>
+                        <th style="width: 200px;">Ödenen Miktar:</th>
+                        <td>{{ hosting.amount_paid|default:"-" }} TL</td>
+                    </tr>
+                    <tr>
+                        <th>Ödeme Türü:</th>
+                        <td>{{ hosting.get_payment_type_display|default:"-" }}</td>
+                    </tr>
+                </table>
+            </div>
+            <div class="col-md-6">
+                <h6 class="fw-bold mb-3">Yenileme Bilgileri</h6>
+                <table class="table table-borderless">
+                    <tr>
+                        <th style="width: 200px;">Yenileme Sayısı:</th>
+                        <td>{{ hosting.renewal_count }}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        {% if hosting.renewal_dates %}
+        <div class="row mt-3">
+            <div class="col-12">
+                <h6 class="fw-bold">Yenileme Tarihleri:</h6>
+                <p class="mb-3">{{ hosting.renewal_dates|linebreaks }}</p>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if hosting.notes %}
+        <div class="row mt-3">
+            <div class="col-12">
+                <h6 class="fw-bold">Açıklama:</h6>
+                <p class="mb-0">{{ hosting.notes|linebreaks }}</p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %} 

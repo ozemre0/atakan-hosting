@@ -1,0 +1,299 @@
+{% extends 'customers/base.html' %}
+
+{% block content %}
+<div class="row">
+    <!-- Müşteri İstatistikleri -->
+    <div class="col-md-3 mb-4">
+        <div class="card">
+            <div class="card-body">
+                <h6 class="card-title">Müşteriler</h6>
+                <h2 class="mb-2">{{ customer_stats.total }}</h2>
+                <p class="mb-0 text-success">
+                    <i class="bi bi-graph-up"></i>
+                    Son 30 günde {{ customer_stats.new }} yeni müşteri
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hosting İstatistikleri -->
+    <div class="col-md-3 mb-4">
+        <div class="card">
+            <div class="card-body">
+                <h6 class="card-title">Hosting Hizmetleri</h6>
+                <h2 class="mb-2">{{ hosting_stats.total }}</h2>
+                <p class="mb-0">
+                    <span class="text-success">{{ hosting_stats.active }} aktif</span> •
+                    <span class="text-warning">{{ hosting_stats.expiring_soon }} yakında bitecek</span>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Domain İstatistikleri -->
+    <div class="col-md-3 mb-4">
+        <div class="card">
+            <div class="card-body">
+                <h6 class="card-title">Domainler</h6>
+                <h2 class="mb-2">{{ domain_stats.total }}</h2>
+                <p class="mb-0">
+                    <span class="text-success">{{ domain_stats.active }} aktif</span> •
+                    <span class="text-warning">{{ domain_stats.expiring_soon }} yakında bitecek</span>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- SSL İstatistikleri -->
+    <div class="col-md-3 mb-4">
+        <div class="card">
+            <div class="card-body">
+                <h6 class="card-title">SSL Sertifikaları</h6>
+                <h2 class="mb-2">{{ ssl_stats.total }}</h2>
+                <p class="mb-0">
+                    <span class="text-success">{{ ssl_stats.active }} aktif</span> •
+                    <span class="text-warning">{{ ssl_stats.expiring_soon }} yakında bitecek</span>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Fatura İstatistikleri -->
+    <div class="col-md-12 mb-4">
+        <div class="card">
+            <div class="card-body">
+                <h6 class="card-title">Fatura Özeti</h6>
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="border-start border-success border-4 ps-3">
+                            <h3 class="text-success mb-1">{{ invoice_stats.paid.amount|default:0 }} TL</h3>
+                            <p class="mb-0">Ödenen ({{ invoice_stats.paid.count|default:0 }})</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="border-start border-warning border-4 ps-3">
+                            <h3 class="text-warning mb-1">{{ invoice_stats.pending.amount|default:0 }} TL</h3>
+                            <p class="mb-0">Bekleyen ({{ invoice_stats.pending.count|default:0 }})</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="border-start border-danger border-4 ps-3">
+                            <h3 class="text-danger mb-1">{{ invoice_stats.overdue.amount|default:0 }} TL</h3>
+                            <p class="mb-0">Gecikmiş ({{ invoice_stats.overdue.count|default:0 }})</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="border-start border-info border-4 ps-3">
+                            <h3 class="text-info mb-1">{{ invoice_stats.total.amount|default:0 }} TL</h3>
+                            <p class="mb-0">Toplam ({{ invoice_stats.total.count|default:0 }})</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="card-title mb-0">Son Eklenen Müşteriler</h6>
+            </div>
+            <div class="card-body">
+                {% if recent_customers %}
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Firma Adı</th>
+                                <th>İletişim Kişisi</th>
+                                <th>E-posta</th>
+                                <th>Telefon</th>
+                                <th>Kayıt Tarihi</th>
+                                <th>İşlemler</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for customer in recent_customers %}
+                            <tr>
+                                <td>{{ customer.company_name }}</td>
+                                <td>{{ customer.contact_name }}</td>
+                                <td>{{ customer.email }}</td>
+                                <td>{{ customer.phone }}</td>
+                                <td>{{ customer.registration_date|date:"d.m.Y" }}</td>
+                                <td>
+                                    <a href="{% url 'customers:customer-detail' customer.pk %}" class="btn btn-sm btn-info">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    <a href="{% url 'customers:customer-edit' customer.pk %}" class="btn btn-sm btn-warning">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <a href="{% url 'customers:customer-delete' customer.pk %}" class="btn btn-sm btn-danger">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-info mb-0">
+                    <i class="bi bi-info-circle"></i> Henüz müşteri kaydı bulunmamaktadır.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="card-title mb-0">Ödenmemiş Faturalar</h6>
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="sortTable('customer')">
+                        <i class="bi bi-sort-alpha-down"></i> Müşteri
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="sortTable('issue_date')">
+                        <i class="bi bi-sort-down"></i> Fatura Tarihi
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="sortTable('due_date')">
+                        <i class="bi bi-sort-down"></i> Son Ödeme
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col">
+                        <div class="input-group">
+                            <span class="input-group-text">
+                                <i class="bi bi-search"></i>
+                            </span>
+                            <input type="text" id="searchInput" class="form-control" placeholder="Fatura ara...">
+                        </div>
+                    </div>
+                </div>
+
+                {% if unpaid_invoices %}
+                <div class="table-responsive">
+                    <table class="table table-hover" id="invoiceTable">
+                        <thead>
+                            <tr>
+                                <th>Fatura No</th>
+                                <th>Müşteri</th>
+                                <th>Tutar</th>
+                                <th>Fatura Tarihi</th>
+                                <th>Son Ödeme</th>
+                                <th>Durum</th>
+                                <th>İşlemler</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for invoice in unpaid_invoices %}
+                            <tr>
+                                <td>{{ invoice.invoice_number }}</td>
+                                <td>{{ invoice.customer.company_name }}</td>
+                                <td>{{ invoice.amount }} TL</td>
+                                <td>{{ invoice.issue_date|date:"d.m.Y" }}</td>
+                                <td>{{ invoice.due_date|date:"d.m.Y" }}</td>
+                                <td>
+                                    {% if invoice.payment_status == 'paid' %}
+                                    <span class="badge bg-success">Ödendi</span>
+                                    {% elif invoice.payment_status == 'pending' %}
+                                    <span class="badge bg-warning">Beklemede</span>
+                                    {% else %}
+                                    <span class="badge bg-danger">Gecikmiş</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{% url 'customers:invoice-detail' invoice.pk %}" class="btn btn-sm btn-info">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    <a href="{% url 'customers:invoice-edit' invoice.pk %}" class="btn btn-sm btn-warning">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <a href="{% url 'customers:invoice-delete' invoice.pk %}" class="btn btn-sm btn-danger">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-info mb-0">
+                    <i class="bi bi-info-circle"></i> Ödenmemiş fatura bulunmamaktadır.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+// Arama fonksiyonu
+document.getElementById('searchInput').addEventListener('keyup', function() {
+    let searchText = this.value.toLowerCase();
+    let table = document.getElementById('invoiceTable');
+    let rows = table.getElementsByTagName('tr');
+
+    for (let i = 1; i < rows.length; i++) {
+        let row = rows[i];
+        let cells = row.getElementsByTagName('td');
+        let found = false;
+
+        for (let j = 0; j < cells.length - 1; j++) {
+            let cell = cells[j];
+            if (cell.textContent.toLowerCase().indexOf(searchText) > -1) {
+                found = true;
+                break;
+            }
+        }
+
+        row.style.display = found ? '' : 'none';
+    }
+});
+
+// Sıralama fonksiyonu
+let sortDirection = 1;
+
+function sortTable(type) {
+    let table = document.getElementById('invoiceTable');
+    let rows = Array.from(table.getElementsByTagName('tr')).slice(1);
+    let tbody = table.getElementsByTagName('tbody')[0];
+
+    rows.sort(function(a, b) {
+        let aValue, bValue;
+
+        if (type === 'customer') {
+            aValue = a.cells[1].textContent.toLowerCase();
+            bValue = b.cells[1].textContent.toLowerCase();
+        } else if (type === 'issue_date') {
+            aValue = new Date(a.cells[3].textContent.split('.').reverse().join('-'));
+            bValue = new Date(b.cells[3].textContent.split('.').reverse().join('-'));
+        } else if (type === 'due_date') {
+            aValue = new Date(a.cells[4].textContent.split('.').reverse().join('-'));
+            bValue = new Date(b.cells[4].textContent.split('.').reverse().join('-'));
+        }
+
+        if (aValue < bValue) return -1 * sortDirection;
+        if (aValue > bValue) return 1 * sortDirection;
+        return 0;
+    });
+
+    rows.forEach(function(row) {
+        tbody.appendChild(row);
+    });
+
+    sortDirection *= -1;
+}
+</script>
+{% endblock %}
+{% endblock %} 
