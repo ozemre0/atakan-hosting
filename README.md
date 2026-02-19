@@ -1,8 +1,12 @@
 # Atakan Hosting Management System
 
-A modern and user-friendly hosting management system. Built with Flutter, this cross-platform application allows you to easily manage your customers, hosting services, domain registrations, and SSL certificates.
+A modern and user-friendly hosting mangement system, an application developed for my client. Built with Flutter, this cross-platform application allows you to easily manage your customers, hosting services, domain registrations, and SSL certificates.
 
-## 🚀 Features
+## 🚀 In-App Images
+![img2](https://github.com/user-attachments/assets/a47be4ea-67d7-4c6f-8b5a-2a88fe376e15)
+![img3](https://github.com/user-attachments/assets/d00c76da-589e-4228-a702-bddfd15a7f3b)
+![img4](https://github.com/user-attachments/assets/703b6c0c-bfa2-4f83-9615-87c6baf67713)
+![img1](https://github.com/user-attachments/assets/2926e085-bc85-4211-b845-7fc4c58ef7bb)
 
 ### 📊 Dashboard
 - Overview and statistics
@@ -134,7 +138,6 @@ Language setting can be changed from the Settings screen.
 The application supports three theme modes:
 - ☀️ Light Theme
 - 🌙 Dark Theme
-- 🔄 System Theme (follows device setting)
 
 ## 📦 Build
 
@@ -153,17 +156,3 @@ flutter build ios
 ### Web
 ```bash
 flutter build web
-```
-
-## 👤 Developer
-
-**Emre Oz**
-- GitHub: [@ozemre0](https://github.com/ozemre0)
-
-## 📞 Contact
-
-For questions or suggestions, please use GitHub Issues.
-
----
-
-⭐ If you like this project, don't forget to give it a star!
