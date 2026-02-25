@@ -121,6 +121,47 @@ API endpoints:
 - `/domains` - Domain operations
 - `/ssls` - SSL certificate operations
 
+## ☁️ Backend Worker (Cloudflare Workers)
+
+The project includes a Cloudflare Worker backend located in `worker/atakan_worker.js`. This worker provides the REST API for the Flutter application.
+
+### Worker Deployment
+
+1. **Install Wrangler CLI:**
+```bash
+npm install -g wrangler
+```
+
+2. **Login to Cloudflare:**
+```bash
+wrangler login
+```
+
+3. **Configure your worker:**
+   - Create a `wrangler.toml` file in the `worker/` directory
+   - Set up your Cloudflare D1 database binding
+
+4. **Deploy the worker:**
+```bash
+cd worker
+wrangler deploy
+```
+
+### Worker Features
+
+- RESTful API endpoints
+- SQLite database (Cloudflare D1)
+- Authentication with token-based system
+- CORS support
+- CSV export functionality
+- Automatic schema creation
+
+### Worker File Location
+
+The worker code is located at: `worker/atakan_worker.js`
+
+After deployment, configure the API Base URL in the Flutter app settings to point to your deployed worker URL.
+
 ## 🌍 Language Support
 
 The application supports the following languages:
@@ -174,7 +215,7 @@ This is a private project. All rights reserved.
 
 ## 👤 Developer
 
-**Özcan Emre**
+**Emre Oz**
 - GitHub: [@ozemre0](https://github.com/ozemre0)
 
 ## 📞 Contact

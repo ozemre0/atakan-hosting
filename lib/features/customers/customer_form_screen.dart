@@ -5,8 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
-
+import '../../app/utils/date_format_util.dart';
 import '../../app/auth/auth_providers.dart';
 import '../../app/l10n/l10n_ext.dart';
 import '../../app/widgets/app_header.dart';
@@ -52,6 +51,9 @@ class _CustomerFormScreenState extends ConsumerState<CustomerFormScreen> {
     super.initState();
     if (widget.customerId != null) {
       _loadCustomer();
+    } else {
+      _registrationDate = DateTime.now();
+      _registrationDateController.text = formatForDisplay(DateTime.now());
     }
   }
 
@@ -87,7 +89,7 @@ class _CustomerFormScreenState extends ConsumerState<CustomerFormScreen> {
     if (picked != null) {
       setState(() {
         _registrationDate = picked;
-        _registrationDateController.text = DateFormat('yyyy-MM-dd').format(picked);
+        _registrationDateController.text = formatForDisplay(picked);
       });
     }
   }
@@ -116,7 +118,7 @@ class _CustomerFormScreenState extends ConsumerState<CustomerFormScreen> {
       _firstNameController.text = (item['first_name'] ?? '').toString();
       _lastNameController.text = (item['last_name'] ?? '').toString();
       _companyController.text = (item['company'] ?? '').toString();
-      _registrationDateController.text = (item['registration_date'] ?? '').toString();
+      _registrationDateController.text = toDisplayDate((item['registration_date'] ?? '').toString());
       _email1Controller.text = (item['email1'] ?? '').toString();
       _email2Controller.text = (item['email2'] ?? '').toString();
       _email3Controller.text = (item['email3'] ?? '').toString();
@@ -130,11 +132,7 @@ class _CustomerFormScreenState extends ConsumerState<CustomerFormScreen> {
       _descriptionController.text = (item['description'] ?? '').toString();
 
       final regDateStr = (item['registration_date'] ?? '').toString();
-      if (regDateStr.isNotEmpty) {
-        try {
-          _registrationDate = DateTime.parse(regDateStr);
-        } catch (_) {}
-      }
+      if (regDateStr.isNotEmpty) _registrationDate = parseApi(regDateStr);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -152,7 +150,7 @@ class _CustomerFormScreenState extends ConsumerState<CustomerFormScreen> {
         'first_name': _firstNameController.text.trim(),
         'last_name': _lastNameController.text.trim(),
         'company': _companyController.text.trim(),
-        'registration_date': _registrationDateController.text.trim(),
+        'registration_date': displayStringToApi(_registrationDateController.text.trim()),
         'email1': _email1Controller.text.trim(),
         'phone1': _phone1Controller.text.trim(),
         'password': _passwordController.text.trim(),

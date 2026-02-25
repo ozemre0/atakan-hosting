@@ -5,9 +5,8 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
-
 import '../../app/auth/auth_providers.dart';
+import '../../app/utils/date_format_util.dart';
 import '../../app/l10n/l10n_ext.dart';
 import '../../app/widgets/app_header.dart';
 import 'service_type.dart';
@@ -56,6 +55,7 @@ class _ServiceDetailScreenState extends ConsumerState<ServiceDetailScreen> {
   bool _isLoading = false;
   bool _isInitialLoading = true;
   bool _isLoadingCustomers = false;
+  bool _obscureFtpPassword = true;
   List<Map<String, dynamic>> _customers = [];
   Map<String, dynamic>? _customerData;
 
@@ -116,8 +116,8 @@ class _ServiceDetailScreenState extends ConsumerState<ServiceDetailScreen> {
 
       _domainNameController.text = (item['domain_name'] ?? '').toString();
       _paidAmountController.text = (item['paid_amount'] ?? '').toString();
-      _startDateController.text = (item['start_date'] ?? '').toString();
-      _endDateController.text = (item['end_date'] ?? '').toString();
+      _startDateController.text = toDisplayDate((item['start_date'] ?? '').toString());
+      _endDateController.text = toDisplayDate((item['end_date'] ?? '').toString());
       _renewalCountController.text = (item['renewal_count'] ?? '0').toString();
       
       // Parse renewal_dates - handle both JSON array and plain text
@@ -147,45 +147,47 @@ class _ServiceDetailScreenState extends ConsumerState<ServiceDetailScreen> {
       }
 
       final startDateStr = (item['start_date'] ?? '').toString();
-      if (startDateStr.isNotEmpty) {
-        try {
-          _startDate = DateTime.parse(startDateStr);
-        } catch (_) {}
-      }
+      if (startDateStr.isNotEmpty) _startDate = parseApi(startDateStr);
       final endDateStr = (item['end_date'] ?? '').toString();
-      if (endDateStr.isNotEmpty) {
-        try {
-          _endDate = DateTime.parse(endDateStr);
-        } catch (_) {}
-      }
+      if (endDateStr.isNotEmpty) _endDate = parseApi(endDateStr);
     } finally {
       if (mounted) setState(() => _isInitialLoading = false);
     }
   }
 
   Future<void> _selectCustomer(BuildContext context) async {
-    if (_isLoadingCustomers) return;
-    
+    if (_customers.isEmpty && !_isLoadingCustomers) {
+      await _loadCustomers();
+    }
+    while (_customers.isEmpty && _isLoadingCustomers && mounted) {
+      await Future.delayed(const Duration(milliseconds: 100));
+    }
+    if (!mounted) return;
     final selected = await showDialog<Map<String, dynamic>>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(context.l10n.selectCustomer),
         content: SizedBox(
           width: double.maxFinite,
-          child: ListView.builder(
-            shrinkWrap: true,
-            itemCount: _customers.length,
-            itemBuilder: (context, index) {
-              final c = _customers[index];
-              final name = '${c['first_name'] ?? ''} ${c['last_name'] ?? ''}'.trim();
-              final company = (c['company'] ?? '').toString();
-              return ListTile(
-                title: Text(name.isEmpty ? company : name),
-                subtitle: Text(company),
-                onTap: () => Navigator.of(context).pop(c),
-              );
-            },
-          ),
+          child: _isLoadingCustomers
+              ? const Center(child: Padding(
+                  padding: EdgeInsets.all(24),
+                  child: CircularProgressIndicator(),
+                ))
+              : ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: _customers.length,
+                  itemBuilder: (context, index) {
+                    final c = _customers[index];
+                    final name = '${c['first_name'] ?? ''} ${c['last_name'] ?? ''}'.trim();
+                    final company = (c['company'] ?? '').toString();
+                    final displayName = name.isEmpty ? company : name;
+                    return ListTile(
+                      title: Text('${index + 1}. $displayName'),
+                      onTap: () => Navigator.of(context).pop(c),
+                    );
+                  },
+                ),
         ),
       ),
     );
@@ -211,11 +213,11 @@ class _ServiceDetailScreenState extends ConsumerState<ServiceDetailScreen> {
     if (picked != null) {
       setState(() {
         _startDate = picked;
-        _startDateController.text = DateFormat('yyyy-MM-dd').format(picked);
+        _startDateController.text = formatForDisplay(picked);
         if (_endDate == null) {
           final endDate = DateTime(picked.year + 1, picked.month, picked.day);
           _endDate = endDate;
-          _endDateController.text = DateFormat('yyyy-MM-dd').format(endDate);
+          _endDateController.text = formatForDisplay(endDate);
         }
       });
     }
@@ -231,7 +233,7 @@ class _ServiceDetailScreenState extends ConsumerState<ServiceDetailScreen> {
     if (picked != null) {
       setState(() {
         _endDate = picked;
-        _endDateController.text = DateFormat('yyyy-MM-dd').format(picked);
+        _endDateController.text = formatForDisplay(picked);
       });
     }
   }
@@ -253,8 +255,8 @@ class _ServiceDetailScreenState extends ConsumerState<ServiceDetailScreen> {
       final data = <String, dynamic>{
         'customer_id': _selectedCustomerId,
         'domain_name': _domainNameController.text.trim(),
-        'start_date': _startDateController.text.trim(),
-        'end_date': _endDateController.text.trim(),
+        'start_date': displayStringToApi(_startDateController.text.trim()),
+        'end_date': displayStringToApi(_endDateController.text.trim()),
         'status': _isActive ? 1 : 0,
       };
 
@@ -357,6 +359,49 @@ class _ServiceDetailScreenState extends ConsumerState<ServiceDetailScreen> {
     }
   }
 
+  Future<void> _deleteService() async {
+    final l10n = context.l10n;
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        content: Text(l10n.deleteConfirm),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(l10n.cancelDelete),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text(l10n.delete),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+
+    setState(() => _isLoading = true);
+    try {
+      final api = ref.read(apiClientProvider);
+      await api.deleteJson('${widget.type.apiCollectionPath}/${widget.serviceId}');
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(content: Text(l10n.serviceDeleted)),
+      );
+      navigator.pop();
+    } catch (_) {
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(content: Text(l10n.serverError)),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isInitialLoading) {
@@ -379,12 +424,18 @@ class _ServiceDetailScreenState extends ConsumerState<ServiceDetailScreen> {
                 child: CircularProgressIndicator(strokeWidth: 2),
               ),
             )
-          else
+          else ...[
+            IconButton(
+              icon: const Icon(Icons.delete_outline),
+              onPressed: _deleteService,
+              tooltip: context.l10n.delete,
+            ),
             IconButton(
               icon: const Icon(Icons.save),
               onPressed: _submit,
               tooltip: context.l10n.save,
             ),
+          ],
         ],
       ),
       body: Center(
@@ -483,8 +534,15 @@ class _ServiceDetailScreenState extends ConsumerState<ServiceDetailScreen> {
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: _ftpPasswordController,
-                    decoration: InputDecoration(labelText: context.l10n.ftpPassword),
-                    obscureText: true,
+                    decoration: InputDecoration(
+                      labelText: context.l10n.ftpPassword,
+                      suffixIcon: IconButton(
+                        icon: Icon(_obscureFtpPassword ? Icons.visibility : Icons.visibility_off),
+                        onPressed: () => setState(() => _obscureFtpPassword = !_obscureFtpPassword),
+                        tooltip: _obscureFtpPassword ? context.l10n.showPassword : context.l10n.hidePassword,
+                      ),
+                    ),
+                    obscureText: _obscureFtpPassword,
                   ),
                   const SizedBox(height: 16),
                 ],
@@ -527,7 +585,7 @@ class _ServiceDetailScreenState extends ConsumerState<ServiceDetailScreen> {
                   controller: _renewalDatesController,
                   decoration: InputDecoration(
                     labelText: context.l10n.renewalDates,
-                    helperText: 'Her satıra bir tarih (YYYY-MM-DD formatında)',
+                    helperText: context.l10n.renewalDatesHint,
                   ),
                   maxLines: 5,
                   minLines: 3,

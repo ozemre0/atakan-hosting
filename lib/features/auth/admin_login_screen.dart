@@ -19,6 +19,7 @@ class _AdminLoginScreenState extends ConsumerState<AdminLoginScreen> {
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
+  bool _obscurePassword = true;
 
   @override
   void dispose() {
@@ -30,17 +31,31 @@ class _AdminLoginScreenState extends ConsumerState<AdminLoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppHeader(title: Text(context.l10n.adminGateTitle)),
+      appBar: AppBar(
+        centerTitle: true,
+        title: Text(context.l10n.adminGateTitle),
+      ),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 520),
-          child: Padding(
+          child: SingleChildScrollView(
             padding: const EdgeInsets.all(16),
             child: Form(
               key: _formKey,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 24),
+                    child: Image.asset(
+                      'assets/images/cp_logo.webp',
+                      height: 28,
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, __, ___) => const Icon(Icons.business, size: 28),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
                   TextFormField(
                     controller: _usernameController,
                     decoration: InputDecoration(
@@ -58,8 +73,13 @@ class _AdminLoginScreenState extends ConsumerState<AdminLoginScreen> {
                     controller: _passwordController,
                     decoration: InputDecoration(
                       labelText: context.l10n.adminPasswordLabel,
+                      suffixIcon: IconButton(
+                        icon: Icon(_obscurePassword ? Icons.visibility : Icons.visibility_off),
+                        onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                        tooltip: _obscurePassword ? context.l10n.showPassword : context.l10n.hidePassword,
+                      ),
                     ),
-                    obscureText: true,
+                    obscureText: _obscurePassword,
                     validator: (v) {
                       final value = (v ?? '').trim();
                       if (value.isEmpty) return context.l10n.fieldRequired;

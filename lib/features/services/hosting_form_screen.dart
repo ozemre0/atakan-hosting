@@ -5,9 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
-
 import '../../app/auth/auth_providers.dart';
+import '../../app/utils/date_format_util.dart';
 import '../../app/l10n/l10n_ext.dart';
 import '../../app/widgets/app_header.dart';
 
@@ -43,6 +42,7 @@ class _HostingFormScreenState extends ConsumerState<HostingFormScreen> {
   bool _isActive = true;
   bool _isLoading = false;
   bool _isLoadingCustomers = false;
+  bool _obscureFtpPassword = true;
   List<Map<String, dynamic>> _customers = [];
 
   @override
@@ -93,12 +93,11 @@ class _HostingFormScreenState extends ConsumerState<HostingFormScreen> {
     if (picked != null) {
       setState(() {
         _startDate = picked;
-        _startDateController.text = DateFormat('yyyy-MM-dd').format(picked);
-        // Auto-set end date to 1 year later
+        _startDateController.text = formatForDisplay(picked);
         if (_endDate == null) {
           final endDate = DateTime(picked.year + 1, picked.month, picked.day);
           _endDate = endDate;
-          _endDateController.text = DateFormat('yyyy-MM-dd').format(endDate);
+          _endDateController.text = formatForDisplay(endDate);
         }
       });
     }
@@ -114,12 +113,19 @@ class _HostingFormScreenState extends ConsumerState<HostingFormScreen> {
     if (picked != null) {
       setState(() {
         _endDate = picked;
-        _endDateController.text = DateFormat('yyyy-MM-dd').format(picked);
+        _endDateController.text = formatForDisplay(picked);
       });
     }
   }
 
   Future<void> _selectCustomer(BuildContext context) async {
+    if (_customers.isEmpty && !_isLoadingCustomers) {
+      await _loadCustomers();
+    }
+    while (_customers.isEmpty && _isLoadingCustomers && mounted) {
+      await Future.delayed(const Duration(milliseconds: 100));
+    }
+    if (!mounted) return;
     final selected = await showDialog<Map<String, dynamic>>(
       context: context,
       builder: (context) => Dialog(
@@ -141,10 +147,9 @@ class _HostingFormScreenState extends ConsumerState<HostingFormScreen> {
                           final c = _customers[i];
                           final name = '${c['first_name'] ?? ''} ${c['last_name'] ?? ''}'.trim();
                           final company = (c['company'] ?? '').toString();
-                          final displayName = name.isEmpty ? company : '$name ($company)';
+                          final displayName = name.isEmpty ? company : name;
                           return ListTile(
-                            title: Text(displayName),
-                            subtitle: Text('${context.l10n.customerNo}: ${c['customer_no'] ?? ''}'),
+                            title: Text('${i + 1}. $displayName'),
                             onTap: () => Navigator.pop(context, c),
                           );
                         },
@@ -184,8 +189,8 @@ class _HostingFormScreenState extends ConsumerState<HostingFormScreen> {
 
       _domainNameController.text = (item['domain_name'] ?? '').toString();
       _paidAmountController.text = (item['paid_amount'] ?? '').toString();
-      _startDateController.text = (item['start_date'] ?? '').toString();
-      _endDateController.text = (item['end_date'] ?? '').toString();
+      _startDateController.text = toDisplayDate((item['start_date'] ?? '').toString());
+      _endDateController.text = toDisplayDate((item['end_date'] ?? '').toString());
       _ftpUsernameController.text = (item['ftp_username'] ?? '').toString();
       _ftpPasswordController.text = (item['ftp_password'] ?? '').toString();
       _renewalCountController.text = (item['renewal_count'] ?? '0').toString();
@@ -209,15 +214,11 @@ class _HostingFormScreenState extends ConsumerState<HostingFormScreen> {
 
       final startDateStr = (item['start_date'] ?? '').toString();
       if (startDateStr.isNotEmpty) {
-        try {
-          _startDate = DateTime.parse(startDateStr);
-        } catch (_) {}
+        _startDate = parseApi(startDateStr);
       }
       final endDateStr = (item['end_date'] ?? '').toString();
       if (endDateStr.isNotEmpty) {
-        try {
-          _endDate = DateTime.parse(endDateStr);
-        } catch (_) {}
+        _endDate = parseApi(endDateStr);
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -241,8 +242,8 @@ class _HostingFormScreenState extends ConsumerState<HostingFormScreen> {
       final data = <String, dynamic>{
         'customer_id': _selectedCustomerId,
         'domain_name': _domainNameController.text.trim(),
-        'start_date': _startDateController.text.trim(),
-        'end_date': _endDateController.text.trim(),
+        'start_date': displayStringToApi(_startDateController.text.trim()),
+        'end_date': displayStringToApi(_endDateController.text.trim()),
         'status': _isActive ? 1 : 0,
       };
 
@@ -261,8 +262,13 @@ class _HostingFormScreenState extends ConsumerState<HostingFormScreen> {
       }
       // Save renewal dates as plain text (one per line)
       if (_renewalDatesController.text.trim().isNotEmpty) {
-        // Store as plain text, one date per line
-        data['renewal_dates'] = _renewalDatesController.text.trim();
+        final normalized = _renewalDatesController.text
+            .trim()
+            .split(RegExp(r'[\n,]'))
+            .map((s) => s.trim())
+            .where((s) => s.isNotEmpty)
+            .join('\n');
+        if (normalized.isNotEmpty) data['renewal_dates'] = normalized;
       }
       if (_descriptionController.text.trim().isNotEmpty) {
         data['description'] = _descriptionController.text.trim();
@@ -447,8 +453,15 @@ class _HostingFormScreenState extends ConsumerState<HostingFormScreen> {
                 // FTP Şifresi
                 TextFormField(
                   controller: _ftpPasswordController,
-                  decoration: InputDecoration(labelText: context.l10n.ftpPassword),
-                  obscureText: true,
+                  decoration: InputDecoration(
+                    labelText: context.l10n.ftpPassword,
+                    suffixIcon: IconButton(
+                      icon: Icon(_obscureFtpPassword ? Icons.visibility : Icons.visibility_off),
+                      onPressed: () => setState(() => _obscureFtpPassword = !_obscureFtpPassword),
+                      tooltip: _obscureFtpPassword ? context.l10n.showPassword : context.l10n.hidePassword,
+                    ),
+                  ),
+                  obscureText: _obscureFtpPassword,
                 ),
                 const SizedBox(height: 16),
 
@@ -466,7 +479,7 @@ class _HostingFormScreenState extends ConsumerState<HostingFormScreen> {
                   controller: _renewalDatesController,
                   decoration: InputDecoration(
                     labelText: context.l10n.renewalDates,
-                    helperText: 'Her satıra bir tarih (YYYY-MM-DD formatında)',
+                    helperText: context.l10n.renewalDatesHint,
                   ),
                   maxLines: 5,
                   minLines: 3,

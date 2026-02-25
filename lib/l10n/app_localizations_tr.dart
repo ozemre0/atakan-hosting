@@ -9,7 +9,16 @@ class AppLocalizationsTr extends AppLocalizations {
   AppLocalizationsTr([String locale = 'tr']) : super(locale);
 
   @override
-  String get appTitle => 'Atakan';
+  String get appTitle => 'ComPeople';
+
+  @override
+  String get companyName => 'ComPeople';
+
+  @override
+  String get showPassword => 'Şifreyi göster';
+
+  @override
+  String get hidePassword => 'Şifreyi gizle';
 
   @override
   String get apiConfigTitle => 'API Ayarları';
@@ -66,6 +75,24 @@ class AppLocalizationsTr extends AppLocalizations {
   String get adminNotSet => 'Admin şifresi oluşturulmamış';
 
   @override
+  String get adminPasswordChangeTitle => 'Admin şifresi değiştir';
+
+  @override
+  String get oldPasswordLabel => 'Mevcut şifre';
+
+  @override
+  String get newPasswordLabel => 'Yeni şifre';
+
+  @override
+  String get changePassword => 'Şifreyi değiştir';
+
+  @override
+  String get adminPasswordChangeSuccess => 'Admin şifresi güncellendi';
+
+  @override
+  String get adminPasswordChangeError => 'Şifre değiştirilemedi';
+
+  @override
   String get serverError => 'Sunucu hatası';
 
   @override
@@ -73,6 +100,9 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get customersShortcut => 'Müşteriler';
+
+  @override
+  String get navLabelHidden => '';
 
   @override
   String get hostingsShortcut => 'Hosting';
@@ -85,6 +115,15 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get hostingsListTitle => 'Hosting Hizmetleri';
+
+  @override
+  String get totalHostingsCountLabel => 'Toplam hosting sayısı';
+
+  @override
+  String get totalDomainsCountLabel => 'Toplam domain sayısı';
+
+  @override
+  String get totalSslsCountLabel => 'Toplam SSL sayısı';
 
   @override
   String get domainsListTitle => 'Domain Tescili';
@@ -102,7 +141,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get filterPassive => 'Pasif';
 
   @override
-  String get expiredOnly => 'Süresi bitmişleri göster';
+  String get expiredOnly => 'Sadece süresi bitmişler göster';
 
   @override
   String get domainName => 'Domain adı';
@@ -171,6 +210,9 @@ class AppLocalizationsTr extends AppLocalizations {
   String get customersTitle => 'Müşteriler';
 
   @override
+  String get totalCustomersCountLabel => 'Toplam müşteri sayısı';
+
+  @override
   String get customerNo => 'Müşteri No';
 
   @override
@@ -181,6 +223,11 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get renewalCount => 'Yenileme sayısı';
+
+  @override
+  String renewalCountShortWithValue(Object count) {
+    return 'YS : $count';
+  }
 
   @override
   String get servicesTitle => 'Hizmetler';
@@ -204,10 +251,17 @@ class AppLocalizationsTr extends AppLocalizations {
   String get endDate => 'Bitiş tarihi';
 
   @override
+  String get endDateShort => 'BT';
+
+  @override
   String get paidAmount => 'Ödenen miktar';
 
   @override
   String get renewalDates => 'Yenileme tarihleri';
+
+  @override
+  String get renewalDatesHint =>
+      'GG-AA-YYYY (her satıra bir tarih veya virgülle ayırarak yazabilirsiniz)';
 
   @override
   String get description => 'Açıklama';
@@ -247,6 +301,84 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get expiringServicesTitle => 'Süresi Biten Hizmetler';
+
+  @override
+  String get renewalTrackingTitle => 'Yenileme Takibi';
+
+  @override
+  String get renewalTrackingDescription =>
+      'Seçilen tarih aralığında süresi dolan hizmetleri listele ve hatırlatma e-postaları gönder';
+
+  @override
+  String get incomeExpenseTitle => 'Gelir Gider';
+
+  @override
+  String get dateRangeLabel => 'Tarih aralığı';
+
+  @override
+  String get dateRangeLast1Month => 'Son 1 ay';
+
+  @override
+  String get dateRangeLast3Months => 'Son 3 ay';
+
+  @override
+  String get dateRangeLast6Months => 'Son 6 ay';
+
+  @override
+  String get dateRangeLast1Year => 'Son 1 yıl';
+
+  @override
+  String get dateRangeNext1Month => 'Önümüzdeki 1 ay';
+
+  @override
+  String get dateRangeNext3Months => 'Önümüzdeki 3 ay';
+
+  @override
+  String get dateRangeNext6Months => 'Önümüzdeki 6 ay';
+
+  @override
+  String get dateRangeNext1Year => 'Önümüzdeki 1 yıl';
+
+  @override
+  String get dateRangeCustom => 'Özel tarih aralığı';
+
+  @override
+  String get serviceTypeLabel => 'Hizmet türü';
+
+  @override
+  String get noServicesExpiringInRange =>
+      'Seçilen tarih aralığında süresi dolan hizmet yok';
+
+  @override
+  String get sendReminderEmailsButton => 'Hatırlatma maili gönder';
+
+  @override
+  String get sendReminderEmailsSuccess => 'Hatırlatma e-postaları gönderildi';
+
+  @override
+  String get sendReminderEmailsError =>
+      'Hatırlatma e-postaları gönderilirken bir hata oluştu';
+
+  @override
+  String get incomesTitle => 'Gelirler';
+
+  @override
+  String get expensesTitle => 'Giderler';
+
+  @override
+  String get amount => 'Tutar';
+
+  @override
+  String get totalIncome => 'Toplam Gelir';
+
+  @override
+  String get totalExpense => 'Toplam Gider';
+
+  @override
+  String get addIncome => 'Gelir Ekle';
+
+  @override
+  String get addExpense => 'Gider Ekle';
 
   @override
   String get languageTitle => 'Dil';
@@ -373,6 +505,14 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get customerDeleted => 'Müşteri silindi';
+
+  @override
+  String get customerDeleteHasActiveServices =>
+      'Bu müşteriye bağlı aktif hizmetler var. Önce bu hizmetleri pasif duruma almalısınız.';
+
+  @override
+  String get customerDeleteHasServices =>
+      'Bu müşteriye bağlı hizmetler var. Önce tüm bağlı hizmetleri silmelisiniz.';
 
   @override
   String get selectDate => 'Tarih Seç';

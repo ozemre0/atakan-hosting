@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../app/auth/auth_providers.dart';
 import '../../app/l10n/l10n_ext.dart';
+import '../../app/utils/date_format_util.dart';
 import '../../app/widgets/app_header.dart';
 import 'service_type.dart';
 
@@ -35,6 +36,32 @@ class _ServiceListScreenState extends ConsumerState<ServiceListScreen> {
   bool _desc = false;
   _ServiceStatusFilter _status = _ServiceStatusFilter.all;
 
+  Future<Map<String, dynamic>>? _listFuture;
+  String? _listFutureKey;
+
+  String _listParamsKey() {
+    return '${widget.type.apiCollectionPath}_${_searchController.text.trim()}_${_statusQueryValue()}_${_sortQueryValue()}_${_desc}_${widget.expiredOnly}';
+  }
+
+  Future<Map<String, dynamic>> _loadList() {
+    final key = _listParamsKey();
+    if (_listFuture != null && _listFutureKey == key) return _listFuture!;
+    _listFutureKey = key;
+    final api = ref.read(apiClientProvider);
+    _listFuture = api.getJson(
+      widget.type.apiCollectionPath,
+      queryParameters: {
+        'q': _searchController.text.trim(),
+        'status': _statusQueryValue(),
+        'sort': _sortQueryValue(),
+        'dir': _desc ? 'desc' : 'asc',
+        'limit': 200,
+        'offset': 0,
+      },
+    );
+    return _listFuture!;
+  }
+
   @override
   void dispose() {
     _debounce?.cancel();
@@ -44,7 +71,6 @@ class _ServiceListScreenState extends ConsumerState<ServiceListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final api = ref.watch(apiClientProvider);
     final title = widget.type.title(context);
 
     return Scaffold(
@@ -120,7 +146,14 @@ class _ServiceListScreenState extends ConsumerState<ServiceListScreen> {
                         ),
                         FilterChip(
                           selected: widget.expiredOnly,
-                          onSelected: (_) => setState(() {}),
+                          onSelected: (_) {
+                            final path = widget.type.apiCollectionPath;
+                            context.go(
+                              widget.expiredOnly
+                                  ? path
+                                  : '$path?expiredOnly=1',
+                            );
+                          },
                           label: Text(context.l10n.expiredOnly),
                         ),
                       ],
@@ -128,18 +161,7 @@ class _ServiceListScreenState extends ConsumerState<ServiceListScreen> {
                     const SizedBox(height: 12),
                     Expanded(
                       child: FutureBuilder<Map<String, dynamic>>(
-                        future: api.getJson(
-                          widget.type.apiCollectionPath,
-                          queryParameters: {
-                            'q': _searchController.text.trim(),
-                            'status': _statusQueryValue(),
-                            'sort': _sortQueryValue(),
-                            'dir': _desc ? 'desc' : 'asc',
-                            // keep requests bounded for performance; increase later with pagination
-                            'limit': 200,
-                            'offset': 0,
-                          },
-                        ),
+                        future: _loadList(),
                         builder: (context, snap) {
                           if (snap.connectionState != ConnectionState.done) {
                             return const Center(child: CircularProgressIndicator());
@@ -157,44 +179,87 @@ class _ServiceListScreenState extends ConsumerState<ServiceListScreen> {
                             items = items.where((m) => (m['is_expired'] == 1) || (m['is_expired'] == true)).toList();
                           }
 
-                          if (items.isEmpty) return Center(child: Text(context.l10n.noData));
+                          final total = data['total'] as int? ?? data['count'] as int? ?? items.length;
+                          final totalLabel = switch (widget.type) {
+                            ServiceType.hostings => context.l10n.totalHostingsCountLabel,
+                            ServiceType.domains => context.l10n.totalDomainsCountLabel,
+                            ServiceType.ssls => context.l10n.totalSslsCountLabel,
+                          };
+                          final endDateShort = context.l10n.endDateShort;
 
-                          return ListView.separated(
-                            itemCount: items.length,
-                            separatorBuilder: (_, __) => const SizedBox(height: 8),
-                            itemBuilder: (context, i) {
-                              final m = items[i];
-                              final id = (m['id'] ?? '').toString();
-                              final domainName = (m['domain_name'] ?? '').toString();
-                              final customerName = (m['customer_name'] ?? '').toString();
-                              final renewalCount = (m['renewal_count'] ?? 0).toString();
-                              final endDate = (m['end_date'] ?? '').toString();
-                              final status = (m['status'] ?? 1);
-                              final isExpired = (m['is_expired'] == 1) || (m['is_expired'] == true);
+                          if (items.isEmpty) {
+                            return Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text('$totalLabel: 0'),
+                                  const SizedBox(height: 16),
+                                  Text(context.l10n.noData),
+                                ],
+                              ),
+                            );
+                          }
 
-                              final bg = _rowBackgroundColor(
-                                context: context,
-                                status: status,
-                                isExpired: isExpired,
-                              );
-
-                              return Card(
-                                color: bg,
-                                child: ListTile(
-                                  onTap: () => context.go('${widget.type.apiCollectionPath}/$id'),
-                                  title: Text(domainName),
-                                  subtitle: Text(customerName),
-                                  trailing: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    crossAxisAlignment: CrossAxisAlignment.end,
-                                    children: [
-                                      Text('${context.l10n.renewalCount}: $renewalCount'),
-                                      Text('${context.l10n.endDate}: $endDate'),
-                                    ],
+                          return CustomScrollView(
+                            slivers: [
+                              SliverToBoxAdapter(
+                                child: Padding(
+                                  padding: const EdgeInsets.only(bottom: 12),
+                                  child: Text(
+                                    '$totalLabel: $total',
+                                    style: Theme.of(context).textTheme.titleSmall,
                                   ),
                                 ),
-                              );
-                            },
+                              ),
+                              SliverList(
+                                delegate: SliverChildBuilderDelegate(
+                                  (context, i) {
+                                    final m = items[i];
+                                    final id = (m['id'] ?? '').toString();
+                                    final domainName = (m['domain_name'] ?? '').toString();
+                                    final customerName = (m['customer_name'] ?? '').toString();
+                                    final endDate = toDisplayDate((m['end_date'] ?? '').toString());
+                                    final status = (m['status'] ?? 1);
+                                    final isExpired = (m['is_expired'] == 1) || (m['is_expired'] == true);
+                                    final bg = _rowBackgroundColor(
+                                      context: context,
+                                      status: status,
+                                      isExpired: isExpired,
+                                    );
+                                    return Padding(
+                                      padding: const EdgeInsets.only(bottom: 8),
+                                      child: Card(
+                                        color: bg,
+                                        child: ListTile(
+                                          leading: SizedBox(
+                                            width: 28,
+                                            child: Text(
+                                              '${i + 1}',
+                                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                                    fontWeight: FontWeight.w500,
+                                                  ),
+                                            ),
+                                          ),
+                                          onTap: () => context.go('${widget.type.apiCollectionPath}/$id'),
+                                          title: Text(domainName),
+                                          subtitle: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              const SizedBox(height: 2),
+                                              Text(customerName),
+                                              const SizedBox(height: 2),
+                                              Text('$endDateShort: $endDate'),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  childCount: items.length,
+                                ),
+                              ),
+                            ],
                           );
                         },
                       ),

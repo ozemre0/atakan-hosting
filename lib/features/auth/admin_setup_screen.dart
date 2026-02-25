@@ -19,6 +19,7 @@ class _AdminSetupScreenState extends ConsumerState<AdminSetupScreen> {
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
+  bool _obscurePassword = true;
 
   @override
   void dispose() {
@@ -34,13 +35,25 @@ class _AdminSetupScreenState extends ConsumerState<AdminSetupScreen> {
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 520),
-          child: Padding(
+          child: SingleChildScrollView(
             padding: const EdgeInsets.all(16),
             child: Form(
               key: _formKey,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  Container(
+                    width: double.infinity,
+                    color: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 24),
+                    child: Image.asset(
+                      'assets/images/cp_logo.webp',
+                      height: 56,
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, __, ___) => const Icon(Icons.business, size: 56),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
                   Text(
                     context.l10n.setupAdminPasswordHint,
                     style: Theme.of(context).textTheme.bodyMedium,
@@ -65,8 +78,13 @@ class _AdminSetupScreenState extends ConsumerState<AdminSetupScreen> {
                     controller: _passwordController,
                     decoration: InputDecoration(
                       labelText: context.l10n.adminPasswordLabel,
+                      suffixIcon: IconButton(
+                        icon: Icon(_obscurePassword ? Icons.visibility : Icons.visibility_off),
+                        onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                        tooltip: _obscurePassword ? context.l10n.showPassword : context.l10n.hidePassword,
+                      ),
                     ),
-                    obscureText: true,
+                    obscureText: _obscurePassword,
                     validator: (v) {
                       final value = (v ?? '').trim();
                       if (value.isEmpty) return context.l10n.fieldRequired;

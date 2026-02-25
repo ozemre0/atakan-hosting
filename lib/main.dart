@@ -44,6 +44,7 @@ class AppBootstrap extends ConsumerWidget {
       routerConfig: router,
       theme: buildLightTheme(),
       darkTheme: buildDarkTheme(),
+      debugShowCheckedModeBanner: false,
       themeMode: toMaterialThemeMode(settings.themeMode),
       locale: locale,
       localizationsDelegates: const [

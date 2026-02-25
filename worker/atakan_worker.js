@@ -77,6 +77,32 @@ export default {
         return cors(json({ ok: true }));
       }
 
+      if (path === "/auth/change-password" && method === "POST") {
+        const body = await readJson(request);
+        const username = String(body?.username || "").trim();
+        const oldPassword = String(body?.oldPassword || "").trim();
+        const newPassword = String(body?.newPassword || "").trim();
+        if (!username || !oldPassword || !newPassword)
+          return cors(json({ ok: false, error: "INVALID_FIELDS" }, 400));
+        if (newPassword.length < 6)
+          return cors(json({ ok: false, error: "PASSWORD_TOO_SHORT" }, 400));
+        if (username !== admin.username)
+          return cors(json({ ok: false, error: "FORBIDDEN" }, 403));
+
+        const row = await env.DB.prepare("SELECT password FROM admins WHERE username=?")
+          .bind(username)
+          .first();
+        if (!row) return cors(json({ ok: false, error: "INVALID_CREDENTIALS" }, 401));
+        if (String(row.password) !== oldPassword)
+          return cors(json({ ok: false, error: "INVALID_CREDENTIALS" }, 401));
+
+        await env.DB.prepare("UPDATE admins SET password=? WHERE username=?")
+          .bind(newPassword, username)
+          .run();
+
+        return cors(json({ ok: true }));
+      }
+
       // SETTINGS: SMTP (PDF)
       if (path === "/settings/smtp") {
         if (method === "GET") {
@@ -129,7 +155,135 @@ export default {
         );
       }
 
-      // RENEWALS (PDF: tarih aralığında bitecekler)
+      // RENEWALS: e-posta ile hatırlatma gönder (SMTP ayarlarını kullanır)
+      if (path === "/renewals/send-reminders" && method === "POST") {
+        const body = await readJson(request);
+        if (!body) return cors(json({ ok: false, error: "INVALID_JSON" }, 400));
+
+        const services = Array.isArray(body.services) ? body.services : [];
+        if (!services.length) {
+          return cors(json({ ok: false, error: "NO_SERVICES" }, 400));
+        }
+
+        const smtp = await getSmtp(env);
+        if (!smtp || !smtp.host || !smtp.port || !smtp.username) {
+          return cors(json({ ok: false, error: "SMTP_NOT_CONFIGURED" }, 400));
+        }
+
+        const hostingIds = [];
+        const domainIds = [];
+        const sslIds = [];
+        for (const s of services) {
+          const id = String(s.id || "").trim();
+          const type = String(s.type || "").toLowerCase();
+          if (!id) continue;
+          if (type === "hosting") hostingIds.push(id);
+          if (type === "domain") domainIds.push(id);
+          if (type === "ssl") sslIds.push(id);
+        }
+
+        let sentCount = 0;
+
+        if (hostingIds.length) {
+          const placeholders = hostingIds.map(() => "?").join(",");
+          const { results } = await env.DB.prepare(
+            `
+            SELECT
+              h.id,
+              h.domain_name,
+              h.end_date,
+              c.first_name,
+              c.last_name,
+              c.email1
+            FROM hostings h
+            JOIN customers c ON c.id = h.customer_id
+            WHERE h.id IN (${placeholders})
+          `
+          )
+            .bind(...hostingIds)
+            .all();
+
+          for (const row of results || []) {
+            const email = buildHostingReminderEmail(row);
+            if (email && row.email1) {
+              await sendEmailSmtp(smtp, {
+                to: String(row.email1),
+                subject: email.subject,
+                text: email.body,
+              });
+              sentCount += 1;
+            }
+          }
+        }
+
+        if (domainIds.length) {
+          const placeholders = domainIds.map(() => "?").join(",");
+          const { results } = await env.DB.prepare(
+            `
+            SELECT
+              d.id,
+              d.domain_name,
+              d.end_date,
+              c.first_name,
+              c.last_name,
+              c.email1
+            FROM domains d
+            JOIN customers c ON c.id = d.customer_id
+            WHERE d.id IN (${placeholders})
+          `
+          )
+            .bind(...domainIds)
+            .all();
+
+          for (const row of results || []) {
+            const email = buildDomainReminderEmail(row);
+            if (email && row.email1) {
+              await sendEmailSmtp(smtp, {
+                to: String(row.email1),
+                subject: email.subject,
+                text: email.body,
+              });
+              sentCount += 1;
+            }
+          }
+        }
+
+        if (sslIds.length) {
+          const placeholders = sslIds.map(() => "?").join(",");
+          const { results } = await env.DB.prepare(
+            `
+            SELECT
+              s.id,
+              s.domain_name,
+              s.end_date,
+              c.first_name,
+              c.last_name,
+              c.email1
+            FROM ssls s
+            JOIN customers c ON c.id = s.customer_id
+            WHERE s.id IN (${placeholders})
+          `
+          )
+            .bind(...sslIds)
+            .all();
+
+          for (const row of results || []) {
+            const email = buildSslReminderEmail(row);
+            if (email && row.email1) {
+              await sendEmailSmtp(smtp, {
+                to: String(row.email1),
+                subject: email.subject,
+                text: email.body,
+              });
+              sentCount += 1;
+            }
+          }
+        }
+
+        return cors(json({ ok: true, sent: sentCount }));
+      }
+
+      // RENEWALS listesi (PDF: tarih aralığında bitecekler)
       if (path === "/renewals" && method === "GET") {
         const type = (url.searchParams.get("type") || "all").toLowerCase(); // hosting|domain|ssl|all
         const start = url.searchParams.get("start");
@@ -373,6 +527,98 @@ async function setSetting(env, key, value) {
 async function getSmtp(env) {
   const raw = await getSetting(env, "smtp_settings");
   return raw ? JSON.parse(raw) : null;
+}
+
+// SMTP üzerinden e-posta gönderimi için stub.
+// Gerçek ortamında bunu nodemailer veya benzeri bir kütüphane ile
+// SMTP sunucuna bağlanacak şekilde güncellemelisiniz.
+async function sendEmailSmtp(smtp, { to, subject, text }) {
+  console.log("[SMTP] Would send email", {
+    host: smtp.host,
+    port: smtp.port,
+    secure: smtp.secure,
+    username: smtp.username,
+    to,
+    subject,
+  });
+}
+
+function buildFullName(row) {
+  const first = String(row.first_name || "").trim();
+  const last = String(row.last_name || "").trim();
+  return `${first} ${last}`.trim();
+}
+
+function buildHostingReminderEmail(row) {
+  const fullName = buildFullName(row);
+  const hostingName = String(row.domain_name || "").trim();
+  const endDate = String(row.end_date || "").trim();
+
+  const subject = `Hosting Yenileme Hatırlatması - ${hostingName}`;
+  const body = [
+    `Sayın ${fullName},`,
+    "",
+    `${hostingName} adresindeki hosting hesabınızın süresi ${endDate} tarihinde dolacaktır.`,
+    "Bu hizmetin süresini uzatmak için web sitemizi ziyaret edebilir, aşağıdaki linke tıklayabilir ya da bizimle temasa geçebilirsiniz.",
+    "",
+    "https://www.compeople.com.tr/product/hosting-hizmeti/",
+    "",
+    "Saygılarımızla,",
+    "",
+    "Com People",
+    "Email: destek@compeople.com.tr",
+  ].join("\n");
+
+  return { subject, body };
+}
+
+function buildDomainReminderEmail(row) {
+  const fullName = buildFullName(row);
+  const domainName = String(row.domain_name || "").trim();
+  const endDate = String(row.end_date || "").trim();
+
+  const subject = `Domain Yenileme Hatırlatması - ${domainName}`;
+  const body = [
+    `Sayın ${fullName},`,
+    "",
+    `${domainName} domain adınızın süresi ${endDate} tarihinde dolacaktır.`,
+    "Bu hizmetin süresini uzatmak için web sitemizi ziyaret edebilir, aşağıdaki linke tıklayabilir ya da bizimle temasa geçebilirsiniz.",
+    "",
+    "https://www.compeople.com.tr/product/domain-adi-tescili/",
+    "",
+    "** İsim tescil yenilemelerinde, 6-15 gün gecikmelerde %25; 16 gün ve daha fazla gecikmelerde %50 gecikme ücreti ilave edilir.",
+    "*** Kurtarma süreçleri ve ücretlendirmesi uzantılara göre değişiklik göstermektedir",
+    "",
+    "Saygılarımızla,",
+    "",
+    "Com People",
+    "Email: destek@compeople.com.tr",
+  ].join("\n");
+
+  return { subject, body };
+}
+
+function buildSslReminderEmail(row) {
+  const fullName = buildFullName(row);
+  const sslName = String(row.domain_name || "").trim();
+  const endDate = String(row.end_date || "").trim();
+
+  const subject = `SSL Yenileme Hatırlatması - ${sslName}`;
+  const body = [
+    `Sayın ${fullName},`,
+    "",
+    `${sslName} alan adınıza tanımlı SSL sertifikasının (https:// yönlendirme) süresi ${endDate} tarihinde dolacaktır.`,
+    "Bu hizmetin süresini uzatmak için web sitemizi ziyaret edebilir, aşağıdaki linke tıklayabilir ya da bizimle temasa geçebilirsiniz.",
+    "",
+    "https://www.compeople.com.tr/product/ssl-hizmeti/",
+    "",
+    "Saygılarımızla,",
+    "",
+    "Com People",
+    "Email: destek@compeople.com.tr",
+  ].join("\n");
+
+  return { subject, body };
 }
 
 async function ensureSchema(env) {

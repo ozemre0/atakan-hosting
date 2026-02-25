@@ -9,7 +9,16 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
-  String get appTitle => 'Atakan';
+  String get appTitle => 'ComPeople';
+
+  @override
+  String get companyName => 'ComPeople';
+
+  @override
+  String get showPassword => 'Show password';
+
+  @override
+  String get hidePassword => 'Hide password';
 
   @override
   String get apiConfigTitle => 'API Settings';
@@ -66,6 +75,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String get adminNotSet => 'Admin password is not set';
 
   @override
+  String get adminPasswordChangeTitle => 'Change admin password';
+
+  @override
+  String get oldPasswordLabel => 'Current password';
+
+  @override
+  String get newPasswordLabel => 'New password';
+
+  @override
+  String get changePassword => 'Change password';
+
+  @override
+  String get adminPasswordChangeSuccess => 'Admin password updated';
+
+  @override
+  String get adminPasswordChangeError => 'Failed to change password';
+
+  @override
   String get serverError => 'Server error';
 
   @override
@@ -73,6 +100,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get customersShortcut => 'Customers';
+
+  @override
+  String get navLabelHidden => '';
 
   @override
   String get hostingsShortcut => 'Hosting';
@@ -85,6 +115,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get hostingsListTitle => 'Hosting services';
+
+  @override
+  String get totalHostingsCountLabel => 'Total hostings';
+
+  @override
+  String get totalDomainsCountLabel => 'Total domains';
+
+  @override
+  String get totalSslsCountLabel => 'Total SSL';
 
   @override
   String get domainsListTitle => 'Domain registration';
@@ -102,7 +141,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get filterPassive => 'Passive';
 
   @override
-  String get expiredOnly => 'Show expired only';
+  String get expiredOnly => 'Show only expired';
 
   @override
   String get domainName => 'Domain name';
@@ -171,6 +210,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get customersTitle => 'Customers';
 
   @override
+  String get totalCustomersCountLabel => 'Total customers';
+
+  @override
   String get customerNo => 'Customer No';
 
   @override
@@ -181,6 +223,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get renewalCount => 'Renewal count';
+
+  @override
+  String renewalCountShortWithValue(Object count) {
+    return 'YS : $count';
+  }
 
   @override
   String get servicesTitle => 'Services';
@@ -204,10 +251,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get endDate => 'End date';
 
   @override
+  String get endDateShort => 'ED';
+
+  @override
   String get paidAmount => 'Paid amount';
 
   @override
   String get renewalDates => 'Renewal dates';
+
+  @override
+  String get renewalDatesHint =>
+      'DD-MM-YYYY (one date per line or comma-separated)';
 
   @override
   String get description => 'Description';
@@ -247,6 +301,84 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get expiringServicesTitle => 'Expiring Services';
+
+  @override
+  String get renewalTrackingTitle => 'Renewal Tracking';
+
+  @override
+  String get renewalTrackingDescription =>
+      'List services expiring in the selected date range and send reminder emails';
+
+  @override
+  String get incomeExpenseTitle => 'Income & Expense';
+
+  @override
+  String get dateRangeLabel => 'Date range';
+
+  @override
+  String get dateRangeLast1Month => 'Last 1 month';
+
+  @override
+  String get dateRangeLast3Months => 'Last 3 months';
+
+  @override
+  String get dateRangeLast6Months => 'Last 6 months';
+
+  @override
+  String get dateRangeLast1Year => 'Last 1 year';
+
+  @override
+  String get dateRangeNext1Month => 'Next 1 month';
+
+  @override
+  String get dateRangeNext3Months => 'Next 3 months';
+
+  @override
+  String get dateRangeNext6Months => 'Next 6 months';
+
+  @override
+  String get dateRangeNext1Year => 'Next 1 year';
+
+  @override
+  String get dateRangeCustom => 'Custom range';
+
+  @override
+  String get serviceTypeLabel => 'Service Type';
+
+  @override
+  String get noServicesExpiringInRange =>
+      'No services expiring in the selected date range';
+
+  @override
+  String get sendReminderEmailsButton => 'Send reminder emails';
+
+  @override
+  String get sendReminderEmailsSuccess => 'Reminder emails have been sent';
+
+  @override
+  String get sendReminderEmailsError =>
+      'An error occurred while sending reminder emails';
+
+  @override
+  String get incomesTitle => 'Incomes';
+
+  @override
+  String get expensesTitle => 'Expenses';
+
+  @override
+  String get amount => 'Amount';
+
+  @override
+  String get totalIncome => 'Total Income';
+
+  @override
+  String get totalExpense => 'Total Expense';
+
+  @override
+  String get addIncome => 'Add Income';
+
+  @override
+  String get addExpense => 'Add Expense';
 
   @override
   String get languageTitle => 'Language';
@@ -373,6 +505,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get customerDeleted => 'Customer deleted';
+
+  @override
+  String get customerDeleteHasActiveServices =>
+      'This customer has active services. Please deactivate those services first.';
+
+  @override
+  String get customerDeleteHasServices =>
+      'This customer still has related services. Please delete all related services first.';
 
   @override
   String get selectDate => 'Select Date';

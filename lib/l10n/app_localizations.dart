@@ -101,8 +101,26 @@ abstract class AppLocalizations {
   /// No description provided for @appTitle.
   ///
   /// In en, this message translates to:
-  /// **'Atakan'**
+  /// **'ComPeople'**
   String get appTitle;
+
+  /// No description provided for @companyName.
+  ///
+  /// In en, this message translates to:
+  /// **'ComPeople'**
+  String get companyName;
+
+  /// No description provided for @showPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Show password'**
+  String get showPassword;
+
+  /// No description provided for @hidePassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide password'**
+  String get hidePassword;
 
   /// No description provided for @apiConfigTitle.
   ///
@@ -212,6 +230,42 @@ abstract class AppLocalizations {
   /// **'Admin password is not set'**
   String get adminNotSet;
 
+  /// No description provided for @adminPasswordChangeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Change admin password'**
+  String get adminPasswordChangeTitle;
+
+  /// No description provided for @oldPasswordLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Current password'**
+  String get oldPasswordLabel;
+
+  /// No description provided for @newPasswordLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'New password'**
+  String get newPasswordLabel;
+
+  /// No description provided for @changePassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Change password'**
+  String get changePassword;
+
+  /// No description provided for @adminPasswordChangeSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Admin password updated'**
+  String get adminPasswordChangeSuccess;
+
+  /// No description provided for @adminPasswordChangeError.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to change password'**
+  String get adminPasswordChangeError;
+
   /// No description provided for @serverError.
   ///
   /// In en, this message translates to:
@@ -229,6 +283,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Customers'**
   String get customersShortcut;
+
+  /// Empty label used to hide NavigationBar labels for selected destinations.
+  ///
+  /// In en, this message translates to:
+  /// **''**
+  String get navLabelHidden;
 
   /// No description provided for @hostingsShortcut.
   ///
@@ -253,6 +313,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Hosting services'**
   String get hostingsListTitle;
+
+  /// No description provided for @totalHostingsCountLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Total hostings'**
+  String get totalHostingsCountLabel;
+
+  /// No description provided for @totalDomainsCountLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Total domains'**
+  String get totalDomainsCountLabel;
+
+  /// No description provided for @totalSslsCountLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Total SSL'**
+  String get totalSslsCountLabel;
 
   /// No description provided for @domainsListTitle.
   ///
@@ -287,7 +365,7 @@ abstract class AppLocalizations {
   /// No description provided for @expiredOnly.
   ///
   /// In en, this message translates to:
-  /// **'Show expired only'**
+  /// **'Show only expired'**
   String get expiredOnly;
 
   /// No description provided for @domainName.
@@ -422,6 +500,12 @@ abstract class AppLocalizations {
   /// **'Customers'**
   String get customersTitle;
 
+  /// No description provided for @totalCustomersCountLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Total customers'**
+  String get totalCustomersCountLabel;
+
   /// No description provided for @customerNo.
   ///
   /// In en, this message translates to:
@@ -445,6 +529,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Renewal count'**
   String get renewalCount;
+
+  /// Short renewal count label (YS) with value.
+  ///
+  /// In en, this message translates to:
+  /// **'YS : {count}'**
+  String renewalCountShortWithValue(Object count);
 
   /// No description provided for @servicesTitle.
   ///
@@ -488,6 +578,12 @@ abstract class AppLocalizations {
   /// **'End date'**
   String get endDate;
 
+  /// No description provided for @endDateShort.
+  ///
+  /// In en, this message translates to:
+  /// **'ED'**
+  String get endDateShort;
+
   /// No description provided for @paidAmount.
   ///
   /// In en, this message translates to:
@@ -499,6 +595,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Renewal dates'**
   String get renewalDates;
+
+  /// No description provided for @renewalDatesHint.
+  ///
+  /// In en, this message translates to:
+  /// **'DD-MM-YYYY (one date per line or comma-separated)'**
+  String get renewalDatesHint;
 
   /// No description provided for @description.
   ///
@@ -577,6 +679,156 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Expiring Services'**
   String get expiringServicesTitle;
+
+  /// No description provided for @renewalTrackingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Renewal Tracking'**
+  String get renewalTrackingTitle;
+
+  /// No description provided for @renewalTrackingDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'List services expiring in the selected date range and send reminder emails'**
+  String get renewalTrackingDescription;
+
+  /// No description provided for @incomeExpenseTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Income & Expense'**
+  String get incomeExpenseTitle;
+
+  /// No description provided for @dateRangeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Date range'**
+  String get dateRangeLabel;
+
+  /// No description provided for @dateRangeLast1Month.
+  ///
+  /// In en, this message translates to:
+  /// **'Last 1 month'**
+  String get dateRangeLast1Month;
+
+  /// No description provided for @dateRangeLast3Months.
+  ///
+  /// In en, this message translates to:
+  /// **'Last 3 months'**
+  String get dateRangeLast3Months;
+
+  /// No description provided for @dateRangeLast6Months.
+  ///
+  /// In en, this message translates to:
+  /// **'Last 6 months'**
+  String get dateRangeLast6Months;
+
+  /// No description provided for @dateRangeLast1Year.
+  ///
+  /// In en, this message translates to:
+  /// **'Last 1 year'**
+  String get dateRangeLast1Year;
+
+  /// No description provided for @dateRangeNext1Month.
+  ///
+  /// In en, this message translates to:
+  /// **'Next 1 month'**
+  String get dateRangeNext1Month;
+
+  /// No description provided for @dateRangeNext3Months.
+  ///
+  /// In en, this message translates to:
+  /// **'Next 3 months'**
+  String get dateRangeNext3Months;
+
+  /// No description provided for @dateRangeNext6Months.
+  ///
+  /// In en, this message translates to:
+  /// **'Next 6 months'**
+  String get dateRangeNext6Months;
+
+  /// No description provided for @dateRangeNext1Year.
+  ///
+  /// In en, this message translates to:
+  /// **'Next 1 year'**
+  String get dateRangeNext1Year;
+
+  /// No description provided for @dateRangeCustom.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom range'**
+  String get dateRangeCustom;
+
+  /// No description provided for @serviceTypeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Service Type'**
+  String get serviceTypeLabel;
+
+  /// No description provided for @noServicesExpiringInRange.
+  ///
+  /// In en, this message translates to:
+  /// **'No services expiring in the selected date range'**
+  String get noServicesExpiringInRange;
+
+  /// No description provided for @sendReminderEmailsButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Send reminder emails'**
+  String get sendReminderEmailsButton;
+
+  /// No description provided for @sendReminderEmailsSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Reminder emails have been sent'**
+  String get sendReminderEmailsSuccess;
+
+  /// No description provided for @sendReminderEmailsError.
+  ///
+  /// In en, this message translates to:
+  /// **'An error occurred while sending reminder emails'**
+  String get sendReminderEmailsError;
+
+  /// No description provided for @incomesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Incomes'**
+  String get incomesTitle;
+
+  /// No description provided for @expensesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Expenses'**
+  String get expensesTitle;
+
+  /// No description provided for @amount.
+  ///
+  /// In en, this message translates to:
+  /// **'Amount'**
+  String get amount;
+
+  /// No description provided for @totalIncome.
+  ///
+  /// In en, this message translates to:
+  /// **'Total Income'**
+  String get totalIncome;
+
+  /// No description provided for @totalExpense.
+  ///
+  /// In en, this message translates to:
+  /// **'Total Expense'**
+  String get totalExpense;
+
+  /// No description provided for @addIncome.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Income'**
+  String get addIncome;
+
+  /// No description provided for @addExpense.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Expense'**
+  String get addExpense;
 
   /// No description provided for @languageTitle.
   ///
@@ -829,6 +1081,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Customer deleted'**
   String get customerDeleted;
+
+  /// No description provided for @customerDeleteHasActiveServices.
+  ///
+  /// In en, this message translates to:
+  /// **'This customer has active services. Please deactivate those services first.'**
+  String get customerDeleteHasActiveServices;
+
+  /// No description provided for @customerDeleteHasServices.
+  ///
+  /// In en, this message translates to:
+  /// **'This customer still has related services. Please delete all related services first.'**
+  String get customerDeleteHasServices;
 
   /// No description provided for @selectDate.
   ///

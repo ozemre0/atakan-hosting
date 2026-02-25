@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -7,6 +8,7 @@ import '../../app/l10n/l10n_ext.dart';
 import '../../app/settings/app_settings.dart';
 import '../../app/settings/settings_providers.dart';
 import '../../app/widgets/app_header.dart';
+import '../../app/settings/smtp_defaults.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -19,21 +21,73 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   final _apiController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
+  final _adminUsernameController = TextEditingController();
+  final _adminOldPasswordController = TextEditingController();
+  final _adminNewPasswordController = TextEditingController();
+  final _adminPasswordFormKey = GlobalKey<FormState>();
+  bool _adminOldPasswordVisible = false;
+  bool _adminNewPasswordVisible = false;
+  bool _adminPasswordChangeLoading = false;
+
   final _smtpHostController = TextEditingController();
   final _smtpPortController = TextEditingController();
   final _smtpUsernameController = TextEditingController();
   final _smtpPasswordController = TextEditingController();
   bool _smtpSecure = false;
+  bool _smtpPasswordVisible = false;
   bool _smtpLoading = false;
 
   @override
   void dispose() {
     _apiController.dispose();
+    _adminUsernameController.dispose();
+    _adminOldPasswordController.dispose();
+    _adminNewPasswordController.dispose();
     _smtpHostController.dispose();
     _smtpPortController.dispose();
     _smtpUsernameController.dispose();
     _smtpPasswordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _submitAdminPasswordChange() async {
+    if (!_adminPasswordFormKey.currentState!.validate()) return;
+    setState(() => _adminPasswordChangeLoading = true);
+    try {
+      final api = ref.read(apiClientProvider);
+      final res = await api.postJson(
+        '/auth/change-password',
+        data: {
+          'username': _adminUsernameController.text.trim(),
+          'oldPassword': _adminOldPasswordController.text.trim(),
+          'newPassword': _adminNewPasswordController.text.trim(),
+        },
+      );
+      if (!mounted) return;
+      if (res['ok'] == true) {
+        _adminOldPasswordController.clear();
+        _adminNewPasswordController.clear();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.l10n.adminPasswordChangeSuccess)),
+        );
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            (res['error'] ?? context.l10n.adminPasswordChangeError).toString(),
+          ),
+        ),
+      );
+    } on DioException {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.l10n.adminPasswordChangeError)),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _adminPasswordChangeLoading = false);
+    }
   }
 
   @override
@@ -44,6 +98,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
     if (_apiController.text.isEmpty && settings.apiBaseUrl.isNotEmpty) {
       _apiController.text = settings.apiBaseUrl;
+    }
+
+    if (_smtpHostController.text.isEmpty &&
+        _smtpPortController.text.isEmpty &&
+        _smtpUsernameController.text.isEmpty &&
+        _smtpPasswordController.text.isEmpty) {
+      _smtpHostController.text = defaultSmtpHost;
+      _smtpPortController.text = defaultSmtpPort.toString();
+      _smtpSecure = defaultSmtpSecure;
+      _smtpUsernameController.text = defaultSmtpUsername;
+      _smtpPasswordController.text = defaultSmtpPassword;
     }
 
     return Scaffold(
@@ -118,6 +183,94 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
               ),
               const SizedBox(height: 24),
+              Text(
+                context.l10n.adminPasswordChangeTitle,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 8),
+              Form(
+                key: _adminPasswordFormKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    TextFormField(
+                      controller: _adminUsernameController,
+                      decoration: InputDecoration(
+                        labelText: context.l10n.adminUsernameLabel,
+                      ),
+                      textInputAction: TextInputAction.next,
+                      validator: (v) {
+                        final value = (v ?? '').trim();
+                        if (value.isEmpty) return context.l10n.fieldRequired;
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      controller: _adminOldPasswordController,
+                      decoration: InputDecoration(
+                        labelText: context.l10n.oldPasswordLabel,
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _adminOldPasswordVisible
+                                ? Icons.visibility_off
+                                : Icons.visibility,
+                          ),
+                          onPressed: () => setState(
+                              () => _adminOldPasswordVisible =
+                                  !_adminOldPasswordVisible),
+                          tooltip: _adminOldPasswordVisible
+                              ? context.l10n.hidePassword
+                              : context.l10n.showPassword,
+                        ),
+                      ),
+                      obscureText: !_adminOldPasswordVisible,
+                      textInputAction: TextInputAction.next,
+                      validator: (v) {
+                        final value = (v ?? '').trim();
+                        if (value.isEmpty) return context.l10n.fieldRequired;
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      controller: _adminNewPasswordController,
+                      decoration: InputDecoration(
+                        labelText: context.l10n.newPasswordLabel,
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _adminNewPasswordVisible
+                                ? Icons.visibility_off
+                                : Icons.visibility,
+                          ),
+                          onPressed: () => setState(
+                              () => _adminNewPasswordVisible =
+                                  !_adminNewPasswordVisible),
+                          tooltip: _adminNewPasswordVisible
+                              ? context.l10n.hidePassword
+                              : context.l10n.showPassword,
+                        ),
+                      ),
+                      obscureText: !_adminNewPasswordVisible,
+                      validator: (v) {
+                        final value = (v ?? '').trim();
+                        if (value.isEmpty) return context.l10n.fieldRequired;
+                        if (value.length < 6) return context.l10n.passwordTooShort;
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: FilledButton(
+                        onPressed: _adminPasswordChangeLoading ? null : _submitAdminPasswordChange,
+                        child: Text(context.l10n.changePassword),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
               Row(
                 children: [
                   Expanded(
@@ -183,8 +336,21 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               const SizedBox(height: 8),
               TextField(
                 controller: _smtpPasswordController,
-                obscureText: true,
-                decoration: InputDecoration(labelText: context.l10n.smtpPassword),
+                obscureText: !_smtpPasswordVisible,
+                decoration: InputDecoration(
+                  labelText: context.l10n.smtpPassword,
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _smtpPasswordVisible ? Icons.visibility_off : Icons.visibility,
+                    ),
+                    onPressed: () => setState(
+                      () => _smtpPasswordVisible = !_smtpPasswordVisible,
+                    ),
+                    tooltip: _smtpPasswordVisible
+                        ? context.l10n.hidePassword
+                        : context.l10n.showPassword,
+                  ),
+                ),
               ),
               const SizedBox(height: 12),
               Align(

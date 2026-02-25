@@ -17,6 +17,10 @@ import '../../features/services/hosting_form_screen.dart';
 import '../../features/services/domain_form_screen.dart';
 import '../../features/services/ssl_form_screen.dart';
 import '../../features/customers/customer_form_screen.dart';
+import '../../features/renewals/renewal_tracking_screen.dart';
+import '../../features/income_expense/income_expense_screen.dart';
+import '../../features/income_expense/income_list_screen.dart';
+import '../../features/income_expense/expense_list_screen.dart';
 
 final _rootKey = GlobalKey<NavigatorState>();
 
@@ -170,6 +174,22 @@ GoRouter buildRouter({
             path: '/settings',
             builder: (context, state) => const SettingsScreen(),
           ),
+          GoRoute(
+            path: '/renewals',
+            builder: (context, state) => const RenewalTrackingScreen(),
+          ),
+          GoRoute(
+            path: '/income-expense',
+            builder: (context, state) => const IncomeExpenseScreen(),
+          ),
+          GoRoute(
+            path: '/incomes',
+            builder: (context, state) => const IncomeListScreen(),
+          ),
+          GoRoute(
+            path: '/expenses',
+            builder: (context, state) => const ExpenseListScreen(),
+          ),
         ],
       ),
       GoRoute(
@@ -272,19 +292,31 @@ class _AppShellState extends State<AppShell> {
       },
       child: Scaffold(
       body: widget.child,
-      bottomNavigationBar: NavigationBar(
+      bottomNavigationBar: Theme(
+        data: Theme.of(context).copyWith(
+          navigationBarTheme: NavigationBarThemeData(
+            labelTextStyle: WidgetStateProperty.resolveWith((states) {
+              final base = Theme.of(context).textTheme.labelSmall;
+              return base?.copyWith(fontSize: 11) ?? const TextStyle(fontSize: 11);
+            }),
+          ),
+        ),
+        child: NavigationBar(
         selectedIndex: currentIndex,
         onDestinationSelected: (i) => context.go(_locationForIndex(i)),
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         destinations: [
           NavigationDestination(
             icon: const Icon(Icons.dashboard_outlined),
             selectedIcon: const Icon(Icons.dashboard),
-            label: context.l10n.dashboardTitle,
+            tooltip: context.l10n.dashboardTitle,
+            label: context.l10n.navLabelHidden,
           ),
           NavigationDestination(
             icon: const Icon(Icons.people_outline),
             selectedIcon: const Icon(Icons.people),
-            label: context.l10n.customersShortcut,
+            tooltip: context.l10n.customersShortcut,
+            label: context.l10n.navLabelHidden,
           ),
           NavigationDestination(
             icon: const Icon(Icons.cloud_outlined),
@@ -307,6 +339,7 @@ class _AppShellState extends State<AppShell> {
             label: context.l10n.settingsTitle,
           ),
         ],
+      ),
       ),
       ),
     );

@@ -24,6 +24,9 @@ class _CustomersListScreenState extends ConsumerState<CustomersListScreen> {
   _CustomerSort _sort = _CustomerSort.name;
   bool _desc = false;
 
+  Future<Map<String, dynamic>>? _listFuture;
+  ({String q, String sort, bool desc})? _listFutureParams;
+
   @override
   void dispose() {
     _debounce?.cancel();
@@ -31,10 +34,34 @@ class _CustomersListScreenState extends ConsumerState<CustomersListScreen> {
     super.dispose();
   }
 
+  Future<Map<String, dynamic>> _loadCustomers() {
+    final q = _searchController.text.trim();
+    final sort = _sortKey();
+    final desc = _desc;
+    if (_listFuture != null &&
+        _listFutureParams != null &&
+        _listFutureParams!.q == q &&
+        _listFutureParams!.sort == sort &&
+        _listFutureParams!.desc == desc) {
+      return _listFuture!;
+    }
+    _listFutureParams = (q: q, sort: sort, desc: desc);
+    final api = ref.read(apiClientProvider);
+    _listFuture = api.getJson(
+      '/customers',
+      queryParameters: {
+        'q': q,
+        'sort': sort,
+        'dir': desc ? 'desc' : 'asc',
+        'limit': 50,
+        'offset': 0,
+      },
+    );
+    return _listFuture!;
+  }
+
   @override
   Widget build(BuildContext context) {
-    final api = ref.watch(apiClientProvider);
-
     return Scaffold(
       appBar: AppHeader(
         title: Text(context.l10n.customersTitle),
@@ -82,16 +109,7 @@ class _CustomersListScreenState extends ConsumerState<CustomersListScreen> {
                           const SizedBox(height: 12),
                           Expanded(
                             child: FutureBuilder<Map<String, dynamic>>(
-                              future: api.getJson(
-                                '/customers',
-                                queryParameters: {
-                                  'q': _searchController.text.trim(),
-                                  'sort': _sortKey(),
-                                  'dir': _desc ? 'desc' : 'asc',
-                                  'limit': 50,
-                                  'offset': 0,
-                                },
-                              ),
+                              future: _loadCustomers(),
                               builder: (context, snap) {
                                 if (snap.connectionState != ConnectionState.done) {
                                   return const Center(child: CircularProgressIndicator());
@@ -102,35 +120,77 @@ class _CustomersListScreenState extends ConsumerState<CustomersListScreen> {
 
                                 final data = snap.data ?? const <String, dynamic>{};
                                 final items = (data['items'] as List?)?.cast<Map>() ?? const [];
-                                if (items.isEmpty) return Center(child: Text(context.l10n.noData));
+                                final total = data['total'] as int? ?? data['count'] as int? ?? items.length;
 
-                                return ListView.separated(
-                                  itemCount: items.length,
-                                  separatorBuilder: (_, __) => const SizedBox(height: 8),
-                                  itemBuilder: (context, i) {
-                                    final m = items[i].cast<String, dynamic>();
-                                    final id = (m['id'] ?? '').toString();
-                                    final customerNo = (m['customer_no'] ?? '').toString();
-                                    final name = ((m['full_name'] ?? '') as String).trim();
-                                    final company = ((m['company'] ?? '') as String).trim();
-                                    final renewals = (m['total_renewals'] ?? '0').toString();
+                                if (items.isEmpty) {
+                                  return Center(
+                                    child: Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Text('${context.l10n.totalCustomersCountLabel}: 0'),
+                                        const SizedBox(height: 16),
+                                        Text(context.l10n.noData),
+                                      ],
+                                    ),
+                                  );
+                                }
 
-                                    return Card(
-                                      child: ListTile(
-                                        onTap: () => context.go('/customers/$id'),
-                                        title: Text(name.isEmpty ? company : name),
-                                        subtitle: Text(company),
-                                        trailing: Column(
-                                          mainAxisAlignment: MainAxisAlignment.center,
-                                          crossAxisAlignment: CrossAxisAlignment.end,
-                                          children: [
-                                            Text('${context.l10n.customerNo}: $customerNo'),
-                                            Text('${context.l10n.renewalCount}: $renewals'),
-                                          ],
+                                return CustomScrollView(
+                                  slivers: [
+                                    SliverToBoxAdapter(
+                                      child: Padding(
+                                        padding: const EdgeInsets.only(bottom: 12),
+                                        child: Text(
+                                          '${context.l10n.totalCustomersCountLabel}: $total',
+                                          style: Theme.of(context).textTheme.titleSmall,
                                         ),
                                       ),
-                                    );
-                                  },
+                                    ),
+                                    SliverList(
+                                      delegate: SliverChildBuilderDelegate(
+                                        (context, i) {
+                                          final m = items[i].cast<String, dynamic>();
+                                          final id = (m['id'] ?? '').toString();
+                                          final name = ((m['full_name'] ?? '') as String).trim();
+                                          final company = ((m['company'] ?? '') as String).trim();
+                                          final renewals = (m['total_renewals'] ?? '0').toString();
+                                          final displayTitle = name.isEmpty ? company : name;
+                                          return Padding(
+                                            padding: const EdgeInsets.only(bottom: 8),
+                                            child: Card(
+                                              child: ListTile(
+                                                leading: SizedBox(
+                                                  width: 28,
+                                                  child: Text(
+                                                    '${i + 1}',
+                                                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                                          fontWeight: FontWeight.w500,
+                                                        ),
+                                                  ),
+                                                ),
+                                                onTap: () => context.go('/customers/$id'),
+                                                title: Text(displayTitle),
+                                                subtitle: (name.isEmpty || company.isEmpty)
+                                                    ? null
+                                                    : Text(
+                                                        company,
+                                                        maxLines: 1,
+                                                        overflow: TextOverflow.ellipsis,
+                                                        softWrap: false,
+                                                      ),
+                                                trailing: Text(
+                                                  context.l10n.renewalCountShortWithValue(renewals),
+                                                  textAlign: TextAlign.right,
+                                                  style: Theme.of(context).textTheme.bodySmall,
+                                                ),
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                        childCount: items.length,
+                                      ),
+                                    ),
+                                  ],
                                 );
                               },
                             ),

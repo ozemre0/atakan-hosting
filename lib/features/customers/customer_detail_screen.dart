@@ -5,9 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
-
 import '../../app/auth/auth_providers.dart';
+import '../../app/utils/date_format_util.dart';
 import '../../app/l10n/l10n_ext.dart';
 import '../../app/widgets/app_header.dart';
 
@@ -98,7 +97,7 @@ class _CustomerDetailScreenState extends ConsumerState<CustomerDetailScreen> {
       _firstNameController.text = (item['first_name'] ?? '').toString();
       _lastNameController.text = (item['last_name'] ?? '').toString();
       _companyController.text = (item['company'] ?? '').toString();
-      _registrationDateController.text = (item['registration_date'] ?? '').toString();
+      _registrationDateController.text = toDisplayDate((item['registration_date'] ?? '').toString());
       _email1Controller.text = (item['email1'] ?? '').toString();
       _email2Controller.text = (item['email2'] ?? '').toString();
       _email3Controller.text = (item['email3'] ?? '').toString();
@@ -112,11 +111,7 @@ class _CustomerDetailScreenState extends ConsumerState<CustomerDetailScreen> {
       _descriptionController.text = (item['description'] ?? '').toString();
 
       final regDateStr = (item['registration_date'] ?? '').toString();
-      if (regDateStr.isNotEmpty) {
-        try {
-          _registrationDate = DateTime.parse(regDateStr);
-        } catch (_) {}
-      }
+      if (regDateStr.isNotEmpty) _registrationDate = parseApi(regDateStr);
     } finally {
       if (mounted) setState(() => _isInitialLoading = false);
     }
@@ -132,7 +127,7 @@ class _CustomerDetailScreenState extends ConsumerState<CustomerDetailScreen> {
     if (picked != null) {
       setState(() {
         _registrationDate = picked;
-        _registrationDateController.text = DateFormat('yyyy-MM-dd').format(picked);
+        _registrationDateController.text = formatForDisplay(picked);
       });
     }
   }
@@ -149,7 +144,7 @@ class _CustomerDetailScreenState extends ConsumerState<CustomerDetailScreen> {
         'first_name': _firstNameController.text.trim(),
         'last_name': _lastNameController.text.trim(),
         'company': _companyController.text.trim(),
-        'registration_date': _registrationDateController.text.trim(),
+        'registration_date': displayStringToApi(_registrationDateController.text.trim()),
         'email1': _email1Controller.text.trim(),
         'phone1': _phone1Controller.text.trim(),
         'password': _passwordController.text.trim(),
@@ -253,6 +248,98 @@ class _CustomerDetailScreenState extends ConsumerState<CustomerDetailScreen> {
     }
   }
 
+  bool get _hasAnyService {
+    return _domains.isNotEmpty || _hostings.isNotEmpty || _ssls.isNotEmpty;
+  }
+
+  bool get _hasAnyActiveService {
+    bool isActive(Map<String, dynamic> m) {
+      final status = m['status'];
+      if (status is bool) return status;
+      if (status is num) return status != 0;
+      if (status is String) return status != '0' && status.toLowerCase() != 'false';
+      return true;
+    }
+
+    return _domains.any(isActive) || _hostings.any(isActive) || _ssls.any(isActive);
+  }
+
+  Future<void> _deleteCustomer() async {
+    final l10n = context.l10n;
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+
+    if (_hasAnyActiveService) {
+      await showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          content: Text(l10n.customerDeleteHasActiveServices),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: Text(l10n.close),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    if (_hasAnyService) {
+      await showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          content: Text(l10n.customerDeleteHasServices),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: Text(l10n.close),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        content: Text(l10n.deleteConfirm),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(l10n.cancelDelete),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text(l10n.delete),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+
+    setState(() => _isLoading = true);
+    try {
+      final api = ref.read(apiClientProvider);
+      await api.deleteJson('/customers/${widget.customerId}');
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(content: Text(l10n.customerDeleted)),
+      );
+      navigator.pop();
+    } catch (_) {
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(content: Text(l10n.serverError)),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
   void _showServicesDrawer(BuildContext context, String type, List<Map<String, dynamic>> services) {
     if (services.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -306,7 +393,7 @@ class _CustomerDetailScreenState extends ConsumerState<CustomerDetailScreen> {
                       margin: const EdgeInsets.only(bottom: 8),
                       child: ListTile(
                         title: Text((service['domain_name'] ?? '').toString()),
-                        subtitle: Text('${context.l10n.endDate}: ${service['end_date'] ?? ''}'),
+                        subtitle: Text('${context.l10n.endDate}: ${toDisplayDate((service['end_date'] ?? '').toString())}'),
                         trailing: const Icon(Icons.chevron_right),
                         onTap: () {
                           Navigator.of(context).pop();
@@ -352,12 +439,18 @@ class _CustomerDetailScreenState extends ConsumerState<CustomerDetailScreen> {
                 child: CircularProgressIndicator(strokeWidth: 2),
               ),
             )
-          else
+          else ...[
+            IconButton(
+              icon: const Icon(Icons.delete_outline),
+              onPressed: _deleteCustomer,
+              tooltip: context.l10n.delete,
+            ),
             IconButton(
               icon: const Icon(Icons.save),
               onPressed: _submit,
               tooltip: context.l10n.save,
             ),
+          ],
         ],
       ),
       body: Center(
