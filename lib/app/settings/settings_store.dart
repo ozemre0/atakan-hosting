@@ -23,7 +23,15 @@ class SettingsStore {
     final storedBaseUrl = _prefs.getString(_kApiBaseUrl) ?? '';
     final apiBaseUrl = storedBaseUrl.isNotEmpty ? storedBaseUrl : apiBaseUrlFromEnv;
 
-    final locale = _prefs.getString(_kLocale) ?? 'tr'; // Default to Turkish
+    String locale = _prefs.getString(_kLocale) ?? 'tr'; // Default to Turkish
+    // Eski sürümlerden gelen 'tr_TR', 'en_US' vb. değerleri normalize et.
+    if (locale.startsWith('tr')) {
+      locale = 'tr';
+    } else if (locale.startsWith('en')) {
+      locale = 'en';
+    } else {
+      locale = 'tr';
+    }
 
     return AppSettings(
       apiBaseUrl: apiBaseUrl,

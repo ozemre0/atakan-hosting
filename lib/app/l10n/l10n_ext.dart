@@ -5,6 +5,75 @@ extension L10nX on BuildContext {
   AppLocalizations get l10n => AppLocalizations.of(this)!;
 }
 
+extension SettingsExportL10nX on AppLocalizations {
+  String get dbExportTitle =>
+      localeName == 'tr' ? 'Veritabanı dışa aktarma' : 'Database export';
+
+  String get dbExportDescription => localeName == 'tr'
+      ? 'Müşteri ve hizmet verilerini CSV veya Excel formatında dışa aktarabilirsiniz.'
+      : 'You can export customer and service data as CSV or Excel.';
+
+  String get dbExportFormatLabel =>
+      localeName == 'tr' ? 'Format' : 'Format';
+
+  String get dbExportScopeLabel =>
+      localeName == 'tr' ? 'Kapsam' : 'Scope';
+
+  String get dbExportFormatCsv =>
+      localeName == 'tr' ? 'CSV' : 'CSV';
+
+  String get dbExportFormatExcel =>
+      localeName == 'tr' ? 'Excel' : 'Excel';
+
+  String get dbExportScopeAllTables =>
+      localeName == 'tr' ? 'Tüm tablolar' : 'All tables';
+
+  String get dbExportScopeSingleTable =>
+      localeName == 'tr' ? 'Tek tablo' : 'Single table';
+
+  String get dbExportTableLabel =>
+      localeName == 'tr' ? 'Tablo' : 'Table';
+
+  String get dbExportButtonLabel =>
+      localeName == 'tr' ? 'Dışa aktar' : 'Export';
+
+  String get dbExportNoTableSelected => localeName == 'tr'
+      ? 'Lütfen en az bir tablo seçin.'
+      : 'Please select at least one table.';
+
+  String get dbExportInProgress => localeName == 'tr'
+      ? 'Dışa aktarma devam ediyor...'
+      : 'Export in progress...';
+
+  String get dbExportSuccess => localeName == 'tr'
+      ? 'Dışa aktarma tamamlandı.'
+      : 'Export completed.';
+
+  String dbExportSavedToPath(String path) => localeName == 'tr'
+      ? 'Tam konum: $path'
+      : 'Full path: $path';
+
+  String get dbExportSavedToDownloads => localeName == 'tr'
+      ? 'Dosya yerel depolamaya kaydedildi.'
+      : 'File saved to local storage.';
+
+  String get dbExportError => localeName == 'tr'
+      ? 'Dışa aktarma sırasında bir hata oluştu.'
+      : 'An error occurred during export.';
+
+  String dbExportErrorWithDetail(String detail) => localeName == 'tr'
+      ? 'Dışa aktarma hatası: $detail'
+      : 'Export error: $detail';
+
+  String get dbExportCancelled => localeName == 'tr'
+      ? 'Dışa aktarma iptal edildi.'
+      : 'Export cancelled.';
+
+  String get dbExportPickFolder => localeName == 'tr'
+      ? 'Kaydedilecek klasörü seçin'
+      : 'Choose folder to save to';
+}
+
 extension RenewalEmailL10nX on AppLocalizations {
   String get renewalEmailTemplatesTitle =>
       localeName == 'tr' ? 'Hatırlatma e-posta metinleri' : 'Reminder email texts';

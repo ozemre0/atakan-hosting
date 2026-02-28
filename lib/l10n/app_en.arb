@@ -124,6 +124,8 @@
   "sendReminderEmailsButton": "Send reminder emails",
   "sendReminderEmailsSuccess": "Reminder emails have been sent",
   "sendReminderEmailsError": "An error occurred while sending reminder emails",
+  "renewalEmailPreviewTitle": "Renewal email",
+  "renewalEmailCopyButton": "Copy text",
   "incomesTitle": "Incomes",
   "expensesTitle": "Expenses",
   "amount": "Amount",

@@ -360,6 +360,12 @@ class AppLocalizationsEn extends AppLocalizations {
       'An error occurred while sending reminder emails';
 
   @override
+  String get renewalEmailPreviewTitle => 'Renewal email';
+
+  @override
+  String get renewalEmailCopyButton => 'Copy text';
+
+  @override
   String get incomesTitle => 'Incomes';
 
   @override

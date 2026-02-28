@@ -788,6 +788,18 @@ abstract class AppLocalizations {
   /// **'An error occurred while sending reminder emails'**
   String get sendReminderEmailsError;
 
+  /// No description provided for @renewalEmailPreviewTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Renewal email'**
+  String get renewalEmailPreviewTitle;
+
+  /// No description provided for @renewalEmailCopyButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy text'**
+  String get renewalEmailCopyButton;
+
   /// No description provided for @incomesTitle.
   ///
   /// In en, this message translates to:

@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/auth/auth_providers.dart';
@@ -159,15 +162,14 @@ class _RenewalTrackingScreenState extends ConsumerState<RenewalTrackingScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(
-                          child: Text(
-                            l10n.renewalTrackingDescription,
-                            style: theme.textTheme.titleMedium,
-                          ),
+                        Text(
+                          l10n.renewalTrackingDescription,
+                          style: theme.textTheme.titleMedium,
                         ),
+                        const SizedBox(height: 4),
                         Text(
                           '${l10n.todayLabel}: ${formatForDisplay(DateTime.now())}',
                           style: theme.textTheme.bodySmall?.copyWith(
@@ -497,6 +499,18 @@ class _RenewalTrackingScreenState extends ConsumerState<RenewalTrackingScreen> {
                           Text('$endDateShort: $endDate'),
                         ],
                       ),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.email_outlined),
+                            tooltip: l10n.sendReminderEmailsButton,
+                            onPressed: () =>
+                                _showEmailPreviewDialog(context, type, m),
+                          ),
+                          const Icon(Icons.chevron_right),
+                        ],
+                      ),
                       onTap: () => context.go('${type.apiCollectionPath}/$id'),
                     ),
                   ),
@@ -652,6 +666,122 @@ class _RenewalTrackingScreenState extends ConsumerState<RenewalTrackingScreen> {
     );
   }
 
+  String _fillTemplateFor(ServiceType type, Map<String, dynamic> m) {
+    final templateBody = switch (type) {
+      ServiceType.hostings => _hostingEmailTemplateController.text,
+      ServiceType.domains => _domainEmailTemplateController.text,
+      ServiceType.ssls => _sslEmailTemplateController.text,
+    };
+
+    final rawCustomerName = (m['customer_name'] ?? '').toString();
+    final rawDomainName = (m['domain_name'] ?? '').toString();
+    final domainName = rawDomainName.isEmpty ? '-' : rawDomainName;
+
+    String firstName = '';
+    String lastName = '';
+    if (rawCustomerName.trim().isNotEmpty) {
+      final parts = rawCustomerName.trim().split(RegExp(r'\s+'));
+      if (parts.length == 1) {
+        firstName = parts[0];
+      } else {
+        firstName = parts.sublist(0, parts.length - 1).join(' ');
+        lastName = parts.last;
+      }
+    }
+
+    final endDateDisplay = toDisplayDate((m['end_date'] ?? '').toString());
+
+    final filledTemplate = templateBody
+        .replaceAll('{firstName}', firstName)
+        .replaceAll('{lastName}', lastName)
+        .replaceAll('{domainName}', domainName)
+        .replaceAll('{hostingName}', domainName)
+        .replaceAll('{sslName}', domainName)
+        .replaceAll('{endDate}', endDateDisplay);
+
+    return filledTemplate;
+  }
+
+  Future<void> _openEmailClient({
+    required String to,
+    String? bcc,
+    required String subject,
+    required String body,
+  }) async {
+    final mailtoQuery = <String, String>{
+      'subject': subject,
+      if (bcc != null && bcc.trim().isNotEmpty) 'bcc': bcc,
+    };
+
+    final mailtoUri = Uri(
+      scheme: 'mailto',
+      path: to,
+      queryParameters: mailtoQuery,
+    );
+
+    try {
+      debugPrint('EMAIL_LAUNCH | uri=$mailtoUri');
+      await launchUrl(
+        mailtoUri,
+        mode: kIsWeb ? LaunchMode.externalApplication : LaunchMode.platformDefault,
+      );
+      return;
+    } catch (e) {
+      debugPrint('EMAIL_LAUNCH | exception=$e');
+    }
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(context.l10n.sendReminderEmailsError)),
+    );
+  }
+
+  String _currentTemplateBody(BuildContext context) {
+    final l10n = context.l10n;
+    final labels = <String>[];
+    final controllers = <TextEditingController>[];
+
+    void addHosting() {
+      labels.add(l10n.hostingRenewalEmailLabel);
+      controllers.add(_hostingEmailTemplateController);
+    }
+
+    void addDomain() {
+      labels.add(l10n.domainRenewalEmailLabel);
+      controllers.add(_domainEmailTemplateController);
+    }
+
+    void addSsl() {
+      labels.add(l10n.sslRenewalEmailLabel);
+      controllers.add(_sslEmailTemplateController);
+    }
+
+    switch (_serviceType) {
+      case _ServiceTypeFilter.all:
+        addHosting();
+        addDomain();
+        addSsl();
+        break;
+      case _ServiceTypeFilter.hostings:
+        addHosting();
+        break;
+      case _ServiceTypeFilter.domains:
+        addDomain();
+        break;
+      case _ServiceTypeFilter.ssls:
+        addSsl();
+        break;
+    }
+
+    if (controllers.isEmpty) {
+      return '';
+    }
+
+    final effectiveSelectedIndex =
+        _selectedTemplateIndex.clamp(0, controllers.length - 1);
+    return controllers[effectiveSelectedIndex].text;
+  }
+
   Future<void> _onSendReminderEmails(
     BuildContext context,
     Map<ServiceType, List<Map<String, dynamic>>> data,
@@ -660,49 +790,86 @@ class _RenewalTrackingScreenState extends ConsumerState<RenewalTrackingScreen> {
     final l10n = context.l10n;
     final messenger = ScaffoldMessenger.of(context);
 
-    // Hazır listeden yalnızca id ve servis tipini çıkartıyoruz; ekstra istek yok.
-    final services = <Map<String, dynamic>>[];
     data.forEach((type, items) {
+      final templateType = switch (type) {
+        ServiceType.hostings => 'hosting',
+        ServiceType.domains => 'domain',
+        ServiceType.ssls => 'ssl',
+      };
+
       for (final m in items) {
-        final id = (m['id'] ?? '').toString();
-        if (id.isEmpty) continue;
-        services.add({
-          'id': id,
-          'type': switch (type) {
-            ServiceType.hostings => 'hosting',
-            ServiceType.domains => 'domain',
-            ServiceType.ssls => 'ssl',
-          },
-        });
+        final rawCustomerName = (m['customer_name'] ?? '').toString();
+        final rawDomainName = (m['domain_name'] ?? '').toString();
+        final customerName = rawCustomerName.isEmpty ? '-' : rawCustomerName;
+        final domainName = rawDomainName.isEmpty ? '-' : rawDomainName;
+        final email1 = (m['customer_email1'] ?? '').toString().trim();
+        final email2 = (m['customer_email2'] ?? '').toString().trim();
+        final email3 = (m['customer_email3'] ?? '').toString().trim();
+        final primaryEmail = [
+          email1,
+          email2,
+          email3,
+        ].firstWhere(
+          (e) => e.isNotEmpty,
+          orElse: () => '',
+        );
+
+        final filledTemplate = _fillTemplateFor(type, m);
+
+        debugPrint(
+          'REMINDER_EMAIL_DEBUG | type=$templateType | customer=$customerName | domain=$domainName | primaryEmail=${primaryEmail.isEmpty ? '-empty-' : primaryEmail} | email1=${email1.isEmpty ? '-empty-' : email1} | email2=${email2.isEmpty ? '-empty-' : email2} | email3=${email3.isEmpty ? '-empty-' : email3}',
+        );
+        debugPrint(filledTemplate);
       }
     });
-    if (services.isEmpty) {
+
+    final emails = <String>{};
+    data.forEach((_, items) {
+      for (final m in items) {
+        final email1 = (m['customer_email1'] ?? '').toString().trim();
+        final email2 = (m['customer_email2'] ?? '').toString().trim();
+        final email3 = (m['customer_email3'] ?? '').toString().trim();
+
+        for (final email in [email1, email2, email3]) {
+          if (email.isNotEmpty) {
+            emails.add(email);
+          }
+        }
+      }
+    });
+
+    if (emails.isEmpty) {
+      messenger.showSnackBar(
+        SnackBar(content: Text(l10n.sendReminderEmailsError)),
+      );
       return;
     }
+
+    final body = _currentTemplateBody(context);
+    final subject = l10n.renewalTrackingTitle;
+
+    final to = emails.first;
+    final bcc = emails.length > 1 ? emails.skip(1).join(',') : null;
+
+    debugPrint(
+      'REMINDER_EMAIL_TARGETS | to=$to | bcc=${bcc ?? '-none-'} | totalUnique=${emails.length}',
+    );
 
     setState(() {
       _isSendingReminders = true;
     });
 
     try {
-      final api = ref.read(apiClientProvider);
-      await api.postJson(
-        '/renewals/send-reminders',
-        data: {
-          'start_date': _rangeStart.toIso8601String(),
-          'end_date': _rangeEnd.toIso8601String(),
-          'services': services,
-          'templates': {
-            'hosting': _hostingEmailTemplateController.text,
-            'domain': _domainEmailTemplateController.text,
-            'ssl': _sslEmailTemplateController.text,
-          },
-        },
+      await _openEmailClient(
+        to: to,
+        bcc: bcc,
+        subject: subject,
+        body: body,
       );
       messenger.showSnackBar(
         SnackBar(content: Text(l10n.sendReminderEmailsSuccess)),
       );
-    } catch (e) {
+    } catch (_) {
       messenger.showSnackBar(
         SnackBar(content: Text(l10n.sendReminderEmailsError)),
       );
@@ -713,5 +880,148 @@ class _RenewalTrackingScreenState extends ConsumerState<RenewalTrackingScreen> {
         });
       }
     }
+  }
+
+  Future<void> _showEmailPreviewDialog(
+    BuildContext context,
+    ServiceType type,
+    Map<String, dynamic> m,
+  ) async {
+    final l10n = context.l10n;
+    final filledTemplate = _fillTemplateFor(type, m);
+
+    final rawCustomerName = (m['customer_name'] ?? '').toString();
+    final rawDomainName = (m['domain_name'] ?? '').toString();
+    final customerName = rawCustomerName.isEmpty ? '-' : rawCustomerName;
+    final domainName = rawDomainName.isEmpty ? '-' : rawDomainName;
+
+    debugPrint(
+      'REMINDER_EMAIL_DEBUG | type=${type.name} | customer=$customerName | domain=$domainName',
+    );
+    debugPrint(filledTemplate);
+
+    final email1 = (m['customer_email1'] ?? '').toString().trim();
+    final email2 = (m['customer_email2'] ?? '').toString().trim();
+    final email3 = (m['customer_email3'] ?? '').toString().trim();
+
+    final toEmail = [
+      email1,
+      email2,
+      email3,
+    ].firstWhere(
+      (e) => e.isNotEmpty,
+      orElse: () => '',
+    );
+    final subject = l10n.renewalTrackingTitle;
+
+    final emailRows = <Map<String, String>>[];
+    if (email1.isNotEmpty) {
+      emailRows.add({'label': l10n.email1, 'value': email1});
+    }
+    if (email2.isNotEmpty) {
+      emailRows.add({'label': l10n.email2, 'value': email2});
+    }
+    if (email3.isNotEmpty) {
+      emailRows.add({'label': l10n.email3, 'value': email3});
+    }
+
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: Text(l10n.renewalEmailPreviewTitle),
+          content: SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 600),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.email_outlined),
+                          tooltip: l10n.sendReminderEmailsButton,
+                          onPressed: toEmail.isEmpty
+                              ? null
+                              : () async {
+                                  debugPrint(
+                                    'REMINDER_EMAIL_PREVIEW_SEND | type=${type.name} | customer=$customerName | domain=$domainName | to=$toEmail',
+                                  );
+                                  Navigator.of(ctx).pop();
+                                  await _openEmailClient(
+                                    to: toEmail,
+                                    bcc: null,
+                                    subject: subject,
+                                    body: filledTemplate,
+                                  );
+                                },
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.copy),
+                          tooltip: l10n.renewalEmailCopyButton,
+                          onPressed: () async {
+                            await Clipboard.setData(
+                              ClipboardData(text: filledTemplate),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      tooltip: l10n.close,
+                      onPressed: () => Navigator.of(ctx).pop(),
+                    ),
+                  ],
+                ),
+                if (emailRows.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  ...emailRows.map(
+                    (row) => Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            '${row['label']}: ${row['value']}',
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.copy),
+                          tooltip: l10n.renewalEmailCopyButton,
+                          onPressed: () async {
+                            final value = row['value'] ?? '';
+                            if (value.isEmpty) return;
+                            await Clipboard.setData(
+                              ClipboardData(text: value),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  const Divider(),
+                ],
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: SingleChildScrollView(
+                    child: SelectableText(
+                      filledTemplate,
+                      textAlign: TextAlign.left,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        );
+      },
+    );
   }
 }

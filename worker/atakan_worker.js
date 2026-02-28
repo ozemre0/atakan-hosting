@@ -954,6 +954,9 @@ async function serviceList(env, url, table) {
       t.*,
       (c.first_name || ' ' || c.last_name) AS customer_name,
       c.customer_no AS customer_no,
+      c.email1 AS customer_email1,
+      c.email2 AS customer_email2,
+      c.email3 AS customer_email3,
       CASE WHEN t.end_date < ? THEN 1 ELSE 0 END AS is_expired
     FROM ${table} t
     JOIN customers c ON c.id = t.customer_id

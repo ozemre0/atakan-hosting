@@ -124,6 +124,8 @@
   "sendReminderEmailsButton": "Hatırlatma maili gönder",
   "sendReminderEmailsSuccess": "Hatırlatma e-postaları gönderildi",
   "sendReminderEmailsError": "Hatırlatma e-postaları gönderilirken bir hata oluştu",
+  "renewalEmailPreviewTitle": "Yenileme e-postası",
+  "renewalEmailCopyButton": "Metni kopyala",
   "incomesTitle": "Gelirler",
   "expensesTitle": "Giderler",
   "amount": "Tutar",

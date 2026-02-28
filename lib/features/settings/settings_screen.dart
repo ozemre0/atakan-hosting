@@ -1,6 +1,8 @@
+import 'package:cross_file/cross_file.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../app/api/api_base_url.dart';
 import '../../app/auth/auth_providers.dart';
@@ -8,6 +10,7 @@ import '../../app/l10n/l10n_ext.dart';
 import '../../app/settings/app_settings.dart';
 import '../../app/settings/settings_providers.dart';
 import '../../app/widgets/app_header.dart';
+import '../../app/export/database_export_service.dart';
 import '../../app/settings/smtp_defaults.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -16,6 +19,10 @@ class SettingsScreen extends ConsumerStatefulWidget {
   @override
   ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
 }
+
+enum _DbExportFormat { csv, excel }
+
+enum _DbExportScope { allTables, singleTable }
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   final _apiController = TextEditingController();
@@ -37,6 +44,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _smtpPasswordVisible = false;
   bool _smtpLoading = false;
 
+  _DbExportFormat _dbExportFormat = _DbExportFormat.csv;
+  _DbExportScope _dbExportScope = _DbExportScope.allTables;
+  String _dbExportTableKey = 'customers';
+  bool _dbExportLoading = false;
+
   @override
   void dispose() {
     _apiController.dispose();
@@ -48,6 +60,94 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _smtpUsernameController.dispose();
     _smtpPasswordController.dispose();
     super.dispose();
+  }
+
+  Map<String, String> _dbExportTableLabels(BuildContext context) {
+    final l10n = context.l10n;
+    return <String, String>{
+      'customers': l10n.customersTitle,
+      'hostings': l10n.hostingsListTitle,
+      'domains': l10n.domainsListTitle,
+      'ssls': l10n.sslsListTitle,
+      'incomes': l10n.incomesTitle,
+      'expenses': l10n.expensesTitle,
+    };
+  }
+
+  Set<DbExportTable> _selectedExportTables() {
+    if (_dbExportScope == _DbExportScope.allTables) {
+      return DbExportTable.values.toSet();
+    }
+    final table = DbExportTableX.fromKey(_dbExportTableKey);
+    if (table == null) return <DbExportTable>{};
+    return {table};
+  }
+
+  Future<void> _onExportDatabase() async {
+    final l10n = context.l10n;
+    final tables = _selectedExportTables();
+    if (tables.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.dbExportNoTableSelected)),
+      );
+      return;
+    }
+
+    setState(() {
+      _dbExportLoading = true;
+    });
+
+    try {
+      final api = ref.read(apiClientProvider);
+      final service = DatabaseExportService(api);
+
+      List<String> savedPaths = [];
+      switch (_dbExportFormat) {
+        case _DbExportFormat.csv:
+          savedPaths = await service.exportAsCsv(tables);
+          break;
+        case _DbExportFormat.excel:
+          savedPaths = await service.exportAsExcel(tables);
+          break;
+      }
+
+      if (!mounted) return;
+      final pathLines = savedPaths
+          .where((p) => p.trim().isNotEmpty)
+          .map((p) => l10n.dbExportSavedToPath(p))
+          .toList();
+      final message = pathLines.isEmpty
+          ? '${l10n.dbExportSuccess}\n${l10n.dbExportSavedToDownloads}'
+          : '${l10n.dbExportSuccess}\n${pathLines.join('\n')}';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: SelectableText(message),
+          duration: const Duration(seconds: 8),
+        ),
+      );
+      // Paylaşım sayfasını aç: kullanıcı dosyayı İndirilenler / Dosyalar'a kaydedebilir (app path'e erişemediği için)
+      if (savedPaths.isNotEmpty) {
+        await Share.shareXFiles(
+          savedPaths.map((p) => XFile(p)).toList(),
+          text: l10n.dbExportSuccess,
+        );
+      }
+    } catch (e, _) {
+      if (!mounted) return;
+      final message = e.toString().replaceFirst(RegExp(r'^Exception:?\s*'), '');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: SelectableText(l10n.dbExportErrorWithDetail(message)),
+          duration: const Duration(seconds: 10),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _dbExportLoading = false;
+        });
+      }
+    }
   }
 
   Future<void> _submitAdminPasswordChange() async {
@@ -113,11 +213,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
     return Scaffold(
       appBar: AppHeader(title: Text(context.l10n.settingsTitle)),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 720),
-          child: ListView(
-            padding: const EdgeInsets.all(16),
+      body: SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 720),
+            child: ListView(
+              padding: const EdgeInsets.all(16),
             children: [
               Form(
                 key: _formKey,
@@ -145,6 +246,136 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     await settingsNotifier.setApiBaseUrl(normalized);
                   },
                   child: Text(context.l10n.save),
+                ),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                context.l10n.dbExportTitle,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                context.l10n.dbExportDescription,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+              ),
+              const SizedBox(height: 12),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final isWide = constraints.maxWidth >= 600;
+                  final tableLabels = _dbExportTableLabels(context);
+
+                  final formatDropdown = DropdownButtonFormField<_DbExportFormat>(
+                    value: _dbExportFormat,
+                    decoration: InputDecoration(
+                      labelText: context.l10n.dbExportFormatLabel,
+                    ),
+                    items: [
+                      DropdownMenuItem(
+                        value: _DbExportFormat.csv,
+                        child: Text(context.l10n.dbExportFormatCsv),
+                      ),
+                      DropdownMenuItem(
+                        value: _DbExportFormat.excel,
+                        child: Text(context.l10n.dbExportFormatExcel),
+                      ),
+                    ],
+                    onChanged: (v) {
+                      if (v == null) return;
+                      setState(() {
+                        _dbExportFormat = v;
+                      });
+                    },
+                  );
+                  final scopeDropdown = DropdownButtonFormField<_DbExportScope>(
+                    value: _dbExportScope,
+                    decoration: InputDecoration(
+                      labelText: context.l10n.dbExportScopeLabel,
+                    ),
+                    items: [
+                      DropdownMenuItem(
+                        value: _DbExportScope.allTables,
+                        child: Text(context.l10n.dbExportScopeAllTables),
+                      ),
+                      DropdownMenuItem(
+                        value: _DbExportScope.singleTable,
+                        child: Text(context.l10n.dbExportScopeSingleTable),
+                      ),
+                    ],
+                    onChanged: (v) {
+                      if (v == null) return;
+                      setState(() {
+                        _dbExportScope = v;
+                      });
+                    },
+                  );
+                  final tableDropdown = DropdownButtonFormField<String>(
+                    value: _dbExportTableKey,
+                    decoration: InputDecoration(
+                      labelText: context.l10n.dbExportTableLabel,
+                    ),
+                    items: tableLabels.entries
+                        .map(
+                          (e) => DropdownMenuItem<String>(
+                            value: e.key,
+                            child: Text(e.value),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (v) {
+                      if (v == null) return;
+                      setState(() {
+                        _dbExportTableKey = v;
+                      });
+                    },
+                  );
+
+                  if (isWide) {
+                    return Row(
+                      children: [
+                        Flexible(child: formatDropdown),
+                        const SizedBox(width: 12, height: 12),
+                        Flexible(child: scopeDropdown),
+                        if (_dbExportScope == _DbExportScope.singleTable)
+                          const SizedBox(width: 12, height: 12),
+                        if (_dbExportScope == _DbExportScope.singleTable)
+                          Flexible(child: tableDropdown),
+                      ],
+                    );
+                  }
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      formatDropdown,
+                      const SizedBox(height: 12),
+                      scopeDropdown,
+                      if (_dbExportScope == _DbExportScope.singleTable) ...[
+                        const SizedBox(height: 12),
+                        tableDropdown,
+                      ],
+                    ],
+                  );
+                },
+              ),
+              const SizedBox(height: 12),
+              Align(
+                alignment: Alignment.centerRight,
+                child: FilledButton.icon(
+                  onPressed: _dbExportLoading ? null : _onExportDatabase,
+                  icon: _dbExportLoading
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.download),
+                  label: Text(
+                    _dbExportLoading
+                        ? context.l10n.dbExportInProgress
+                        : context.l10n.dbExportButtonLabel,
+                  ),
                 ),
               ),
               const SizedBox(height: 24),
@@ -381,6 +612,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ],
           ),
         ),
+      ),
       ),
     );
   }

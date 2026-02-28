@@ -267,7 +267,6 @@ class _CustomerDetailScreenState extends ConsumerState<CustomerDetailScreen> {
   Future<void> _deleteCustomer() async {
     final l10n = context.l10n;
     final messenger = ScaffoldMessenger.of(context);
-    final navigator = Navigator.of(context);
 
     if (_hasAnyActiveService) {
       await showDialog<void>(
@@ -327,7 +326,8 @@ class _CustomerDetailScreenState extends ConsumerState<CustomerDetailScreen> {
       messenger.showSnackBar(
         SnackBar(content: Text(l10n.customerDeleted)),
       );
-      navigator.pop();
+      // Silme sonrası müşteri listesine yönlendir
+      context.go('/customers');
     } catch (_) {
       if (!mounted) return;
       messenger.showSnackBar(

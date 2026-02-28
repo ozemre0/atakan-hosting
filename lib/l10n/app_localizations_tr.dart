@@ -360,6 +360,12 @@ class AppLocalizationsTr extends AppLocalizations {
       'Hatırlatma e-postaları gönderilirken bir hata oluştu';
 
   @override
+  String get renewalEmailPreviewTitle => 'Yenileme e-postası';
+
+  @override
+  String get renewalEmailCopyButton => 'Metni kopyala';
+
+  @override
   String get incomesTitle => 'Gelirler';
 
   @override

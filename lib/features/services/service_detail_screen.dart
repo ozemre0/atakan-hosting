@@ -5,6 +5,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../app/auth/auth_providers.dart';
 import '../../app/utils/date_format_util.dart';
 import '../../app/l10n/l10n_ext.dart';
@@ -362,7 +363,6 @@ class _ServiceDetailScreenState extends ConsumerState<ServiceDetailScreen> {
   Future<void> _deleteService() async {
     final l10n = context.l10n;
     final messenger = ScaffoldMessenger.of(context);
-    final navigator = Navigator.of(context);
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -389,7 +389,16 @@ class _ServiceDetailScreenState extends ConsumerState<ServiceDetailScreen> {
       messenger.showSnackBar(
         SnackBar(content: Text(l10n.serviceDeleted)),
       );
-      navigator.pop();
+      // Silme sonrası, servisin tipine göre ilgili liste sayfasına yönlendir
+      final targetPath = switch (widget.type) {
+        ServiceType.hostings => '/hostings',
+        ServiceType.domains => '/domains',
+        ServiceType.ssls => '/ssls',
+      };
+      if (!mounted) {
+        return;
+      }
+      context.go(targetPath);
     } catch (_) {
       if (!mounted) return;
       messenger.showSnackBar(
